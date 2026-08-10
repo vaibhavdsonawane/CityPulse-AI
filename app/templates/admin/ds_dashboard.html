@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h2 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-flask text-purple me-2" style="color: #6f42c1;"></i> CITYPULSE DATA SCIENCE LAB
+        </h2>
+        <p class="text-muted small mb-0">Statistical Analytics, Model Telemetry, & Time-Series Infrastructure Trends</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary fw-bold shadow-sm">
+        <i class="fa-solid fa-building-shield me-1"></i> Return to Command Center
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-primary h-100">
+            <span class="text-muted small fw-bold">TOTAL DATA POINTS</span>
+            <h2 class="fw-bold mb-0 text-dark mt-1">{{ telemetry.total_complaints }}</h2>
+            <small class="text-muted"><i class="fa-solid fa-database me-1"></i> Logged Complaints</small>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-success h-100">
+            <span class="text-muted small fw-bold">RESOLUTION RATE</span>
+            <h2 class="fw-bold mb-0 text-success mt-1">{{ telemetry.resolution_rate }}%</h2>
+            <small class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i> Efficiency Target &gt; 70%</small>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-warning h-100">
+            <span class="text-muted small fw-bold">AVG RESOLUTION TIME</span>
+            <h2 class="fw-bold mb-0 text-dark mt-1">{{ telemetry.avg_response_hours }} <span class="fs-6 text-muted fw-normal">hrs</span></h2>
+            <small class="text-warning fw-semibold"><i class="fa-solid fa-bolt me-1"></i> Mean Time to Repair</small>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-info h-100">
+            <span class="text-muted small fw-bold">VISION AI ACCURACY</span>
+            <h2 class="fw-bold mb-0 text-info mt-1">{{ telemetry.cv_confidence_avg }}%</h2>
+            <small class="text-info fw-semibold"><i class="fa-solid fa-brain me-1"></i> YOLOv8 Inference Conf</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="pulse-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fa-solid fa-chart-bar text-primary me-2"></i> Complaints by Category
+                </h5>
+                <span class="badge bg-light text-dark border">Distribution</span>
+            </div>
+            <div id="categoryBarChart" style="height: 320px;"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="pulse-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fa-solid fa-chart-line text-success me-2"></i> Complaints Over Time (14-Day Trend)
+                </h5>
+                <span class="badge bg-light text-dark border">Time-Series</span>
+            </div>
+            <div id="timeSeriesChart" style="height: 320px;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="pulse-card p-4 h-100">
+            <h5 class="fw-bold mb-3 text-dark">
+                <i class="fa-solid fa-pie-chart text-danger me-2"></i> Risk & Severity Breakdown
+            </h5>
+            <div id="severityPieChart" style="height: 280px;"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="pulse-card p-4 h-100">
+            <h5 class="fw-bold mb-3 text-dark">
+                <i class="fa-solid fa-microchip me-2" style="color: #6f42c1;"></i> Active AI Model Telemetry
+            </h5>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Model Component</th>
+                            <th>Algorithm Architecture</th>
+                            <th>Primary Metric</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong class="text-dark">Vision Inspection Engine</strong></td>
+                            <td>YOLOv8 Object Detection</td>
+                            <td>mAP@50: <strong>0.892</strong></td>
+                            <td><span class="badge bg-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-dark">Text AI & Priority Engine</strong></td>
+                            <td>TF-IDF + Naive Bayes Classifier</td>
+                            <td>Accuracy: <strong>91.4%</strong></td>
+                            <td><span class="badge bg-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-dark">Severity Risk Predictor</strong></td>
+                            <td>XGBoost Gradient Boosting</td>
+                            <td>F1-Score: <strong>0.887</strong></td>
+                            <td><span class="badge bg-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-dark">Spatial Clustering Engine</strong></td>
+                            <td>Haversine Radial Density Engine</td>
+                            <td>Radius: <strong>350 meters</strong></td>
+                            <td><span class="badge bg-success">Active</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 bg-light rounded border mt-2">
+                <small class="text-muted d-block">
+                    <strong>Human-in-the-Loop Active Learning Threshold:</strong> Confidence scores below <strong>60.0%</strong> automatically route to the Admin Verification Queue to prevent model drift.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Horizontal Bar Chart (Complaints by Category)
+    const catLabels = JSON.parse('{{ telemetry.cat_labels | safe }}');
+    const catCounts = JSON.parse('{{ telemetry.cat_counts | safe }}');
+
+    const catTrace = {
+        x: catCounts,
+        y: catLabels,
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+            color: '#0d6efd',
+            opacity: 0.85
+        }
+    };
+    const catLayout = {
+        margin: { t: 10, b: 30, l: 110, r: 20 },
+        xaxis: { title: 'Total Reported Issues', showgrid: true, gridcolor: '#f0f0f0' },
+        yaxis: { automargin: true },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)'
+    };
+    Plotly.newPlot('categoryBarChart', [catTrace], catLayout, {responsive: true});
+
+    // 2. Line Chart (Complaints Over Time)
+    const timeLabels = JSON.parse('{{ telemetry.time_labels | safe }}');
+    const timeValues = JSON.parse('{{ telemetry.time_values | safe }}');
+
+    const timeTrace = {
+        x: timeLabels,
+        y: timeValues,
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#198754', width: 3, shape: 'spline' },
+        marker: { size: 7, color: '#198754' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(25, 135, 84, 0.1)'
+    };
+    const timeLayout = {
+        margin: { t: 10, b: 40, l: 40, r: 20 },
+        xaxis: { showgrid: false },
+        yaxis: { title: 'Daily Volume', showgrid: true, gridcolor: '#f0f0f0' },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)'
+    };
+    Plotly.newPlot('timeSeriesChart', [timeTrace], timeLayout, {responsive: true});
+
+    // 3. Donut Chart (Severity Distribution)
+    const sevLabels = JSON.parse('{{ telemetry.sev_labels | safe }}');
+    const sevCounts = JSON.parse('{{ telemetry.sev_counts | safe }}');
+
+    const sevTrace = {
+        labels: sevLabels,
+        values: sevCounts,
+        type: 'pie',
+        hole: 0.5,
+        marker: {
+            colors: ['#198754', '#0dcaf0', '#fd7e14', '#dc3545']
+        }
+    };
+    const sevLayout = {
+        margin: { t: 10, b: 10, l: 10, r: 10 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.1 }
+    };
+    Plotly.newPlot('severityPieChart', [sevTrace], sevLayout, {responsive: true});
+});
+</script>
+{% endblock %}

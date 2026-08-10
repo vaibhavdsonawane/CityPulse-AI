@@ -1,0 +1,538 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+/* 🔔 NOTIFICATION CENTER STYLING & POSITIONING */
+.notification-dropdown-menu {
+    width: 360px;
+    max-height: 420px;
+    overflow-y: auto;
+    z-index: 1050 !important;
+    border-radius: 12px;
+    border: 1px solid var(--cp-border-color, #e0e0e0);
+}
+
+.notification-dropdown-menu.show {
+    display: block !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: -220px !important; /* Smooth left offset position */
+    right: auto !important;
+    margin-top: 10px !important;
+}
+
+#citizenMap {
+    height: 350px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--cp-border-color, #dee2e6);
+    z-index: 1;
+}
+.leaflet-popup-content-wrapper { border-radius: 10px !important; overflow: hidden; }
+.leaflet-popup-content { margin: 0 !important; width: 250px !important; }
+
+/* Gamification Badge Card Styling */
+.badge-card {
+    transition: all 0.3s ease;
+    border: 1px solid var(--cp-border-color, #e0e0e0);
+}
+.badge-card.unlocked {
+    background: var(--cp-bg-card, #ffffff);
+    border-color: #0d6efd;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1);
+}
+.badge-card.locked {
+    background: var(--cp-bg-main, #f8f9fa);
+    opacity: 0.55;
+    filter: grayscale(1);
+}
+
+/* 🔄 VISUAL WORKFLOW STEPPER STYLING */
+.stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 10px;
+    padding: 10px 0;
+}
+.stepper-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 8%;
+    right: 8%;
+    height: 3px;
+    background-color: var(--cp-border-color, #e0e0e0);
+    z-index: 1;
+}
+.stepper-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    z-index: 2;
+}
+.step-counter {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--cp-bg-card, #ffffff);
+    border: 2px solid var(--cp-border-color, #ccc);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 6px;
+    transition: all 0.3s ease;
+}
+.stepper-item.completed .step-counter {
+    background-color: #198754;
+    border-color: #198754;
+    color: #ffffff;
+}
+.stepper-item.active .step-counter {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+    animation: pulse-step 1.5s infinite;
+}
+@keyframes pulse-step {
+    0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(13, 110, 253, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+}
+.step-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cp-text-main, #495057);
+    text-align: center;
+}
+.step-desc {
+    font-size: 9px;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Star Rating Widget Styling */
+.star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    font-size: 1.5rem;
+}
+.star-rating input { display: none; }
+.star-rating label {
+    color: #ccc;
+    cursor: pointer;
+    padding: 0 2px;
+    transition: color 0.2s ease;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffc107;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-0">Citizen Command Portal</h2>
+        <p class="text-muted mb-0">Track infrastructure issues, view live status lifecycles, and monitor civic impacts.</p>
+    </div>
+    
+    <div class="d-flex gap-2 align-items-center">
+        <div class="dropdown position-relative">
+            <button class="btn btn-light border position-relative fw-bold shadow-sm dropdown-toggle" 
+                    type="button" 
+                    id="notifDropdown" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false">
+                <i class="fa-solid fa-bell text-primary fs-5"></i>
+                <span id="notifBadge" 
+                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                      style="display: none;">
+                    0
+                </span>
+            </button>
+            
+            <div class="dropdown-menu shadow-lg p-0 notification-dropdown-menu" id="notifMenu" aria-labelledby="notifDropdown">
+                <div class="p-3 bg-primary text-white fw-bold d-flex justify-content-between align-items-center rounded-top">
+                    <span><i class="fa-solid fa-bell me-1"></i> Notifications</span>
+                    <span class="badge bg-white text-primary" id="notifHeaderCount">{{ notifications|length }} Updates</span>
+                </div>
+                <div class="list-group list-group-flush" id="notifListContainer">
+                    {% for n in notifications %}
+                    <div class="list-group-item list-group-item-action p-3 notif-item" data-notif-id="{{ n.id }}">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                            <strong class="text-dark small">{{ n.icon }} {{ n.category }}</strong>
+                            <small class="text-muted" style="font-size: 10px;">{{ n.time }}</small>
+                        </div>
+                        <p class="mb-1 small text-dark fw-semibold">{{ n.message }}</p>
+                        {% if n.notes %}
+                        <small class="text-muted d-block bg-light p-1 rounded" style="font-size: 10px;">{{ n.notes }}</small>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted small">
+                        <i class="fa-solid fa-bell-slash fa-2x mb-2 d-block text-secondary opacity-50"></i>
+                        No recent status notifications.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-primary fw-bold shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Report New Issue
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="pulse-card p-4 bg-white border-top border-4 border-primary">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-4 border-end">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="display-3">{{ impact.badge_icon }}</div>
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill mb-1">
+                                {{ impact.title }}
+                            </span>
+                            <h2 class="fw-bold text-dark mb-0">
+                                {{ "{:,}".format(impact.points) }} <span class="fs-6 text-muted fw-normal">Points</span>
+                            </h2>
+                            <small class="text-muted">Logged as <strong>{{ current_user.name }}</strong></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="row text-center g-2">
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 bg-light rounded border">
+                                <small class="text-muted d-block fw-semibold">Reports Submitted</small>
+                                <strong class="fs-5 text-dark">{{ impact.submitted }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 bg-light rounded border">
+                                <small class="text-muted d-block fw-semibold">AI Verified</small>
+                                <strong class="fs-5 text-primary">{{ impact.verified }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 bg-light rounded border">
+                                <small class="text-muted d-block fw-semibold">Issues Resolved</small>
+                                <strong class="fs-5 text-success">{{ impact.resolved }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 bg-light rounded border">
+                                <small class="text-muted d-block fw-semibold">Community Impact</small>
+                                <strong class="fs-6 {{ impact.rating_color }}">{{ impact.rating }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-3">
+            <div class="row g-2">
+                {% for b in impact.badges %}
+                <div class="col-md-3 col-6">
+                    <div class="p-2 rounded-3 badge-card {{ 'unlocked' if b.unlocked else 'locked' }} d-flex align-items-center gap-2">
+                        <span class="fs-3">{{ b.icon }}</span>
+                        <div class="lh-1">
+                            <strong class="d-block small text-dark">{{ b.name }}</strong>
+                            <small class="text-muted" style="font-size: 10px;">{{ b.desc }}</small>
+                            {% if b.unlocked %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size: 8px;">UNLOCKED</span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle mt-1" style="font-size: 8px;">LOCKED</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="pulse-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> My Reported Locations</h5>
+                <div class="input-group" style="max-width: 350px;">
+                    <input type="text" id="citizenMapSearch" class="form-control form-control-sm" placeholder="e.g. Uttam Nagar Nashik...">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="smartGeocodeCitizen()">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="citizenMap"></div>
+        </div>
+    </div>
+</div>
+
+<div class="pulse-card p-4">
+    <h5 class="fw-bold mb-3">Reported Complaints & Live Lifecycle Status</h5>
+    <div class="d-flex flex-column gap-3">
+        {% for c in complaints %}
+        <div class="border rounded-3 p-3 bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <span class="fw-bold fs-5 text-dark">#CP{{ c.id }} - {{ c.category }}</span>
+                    <span class="text-muted small ms-2"><i class="fa-solid fa-clock me-1"></i> Reported on {{ c.reported_at.strftime('%b %d, %Y %H:%M') }}</span>
+                </div>
+                <div>
+                    {% set score = c.ai_prediction.priority_score|int if c.ai_prediction else 20 %}
+                    {% if score >= 85 %}
+                        <span class="badge bg-danger fs-6">🔴 Critical ({{ score }}/100)</span>
+                    {% elif score >= 65 %}
+                        <span class="badge bg-warning text-dark fs-6">🟠 High ({{ score }}/100)</span>
+                    {% elif score >= 40 %}
+                        <span class="badge bg-info text-dark fs-6">🟡 Medium ({{ score }}/100)</span>
+                    {% else %}
+                        <span class="badge bg-success fs-6">🟢 Low ({{ score }}/100)</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <p class="text-muted small mb-3">{{ c.description or 'No description provided' }}</p>
+
+            <div class="bg-light p-3 rounded-3 border mb-3">
+                <div class="stepper-wrapper">
+                    {% for step in c.lifecycle_steps %}
+                    <div class="stepper-item {{ step.state }}">
+                        <div class="step-counter">
+                            {% if step.state == 'completed' %}✓{% elif step.state == 'active' %}●{% else %}○{% endif %}
+                        </div>
+                        <div class="step-name">{{ step.title }}</div>
+                        <div class="step-desc">{{ step.desc }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if c.status == 'Resolved' %}
+            <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle mb-3">
+                {% if c.rating %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="text-success small d-block"><i class="fa-solid fa-circle-check me-1"></i> Resolution Feedback Submitted</strong>
+                        <p class="mb-0 small text-muted"><em>"{{ c.feedback_text or 'No written feedback provided.' }}"</em></p>
+                    </div>
+                    <div class="text-warning fs-5">
+                        {% for i in range(c.rating|default(5)|int) %}★{% endfor %}{% for i in range(5 - (c.rating|default(5)|int)) %}☆{% endfor %}
+                        <span class="text-dark small fw-bold ms-1">({{ c.rating }}/5)</span>
+                    </div>
+                </div>
+                {% else %}
+                <form action="{{ url_for('citizen.submit_feedback', complaint_id=c.id) }}" method="POST">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                        <div>
+                            <strong class="text-success d-block"><i class="fa-solid fa-star text-warning me-1"></i> Was your issue resolved to your satisfaction?</strong>
+                            <small class="text-muted">Rate your experience to help us improve municipal services.</small>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="star-rating">
+                                <input type="radio" id="star5-{{ c.id }}" name="rating" value="5" required/><label for="star5-{{ c.id }}">★</label>
+                                <input type="radio" id="star4-{{ c.id }}" name="rating" value="4"/><label for="star4-{{ c.id }}">★</label>
+                                <input type="radio" id="star3-{{ c.id }}" name="rating" value="3"/><label for="star3-{{ c.id }}">★</label>
+                                <input type="radio" id="star2-{{ c.id }}" name="rating" value="2"/><label for="star2-{{ c.id }}">★</label>
+                                <input type="radio" id="star1-{{ c.id }}" name="rating" value="1"/><label for="star1-{{ c.id }}">★</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group input-group-sm mt-2">
+                        <input type="text" name="feedback_text" class="form-control" placeholder="Optional comments regarding field repair quality...">
+                        <button type="submit" class="btn btn-success fw-bold px-3">Submit Rating</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center small text-muted pt-2 border-top">
+                <span>
+                    {% if c.media %}
+                        <a href="{{ url_for('static', filename='uploads/images/' ~ c.media.file_path) }}" target="_blank" class="text-decoration-none fw-semibold">
+                            <i class="fa-solid fa-image text-primary me-1"></i> View Photo Evidence ({{ (c.media.cv_confidence * 100)|int }}% Vision Conf)
+                        </a>
+                    {% endif %}
+                </span>
+                <span>
+                    <strong class="text-dark">AI Recommendation:</strong> {{ c.ai_prediction.recommended_action if c.ai_prediction else 'Processing...' }}
+                </span>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary"></i>
+            <h6>No complaints reported yet.</h6>
+            <p class="small">Click "Report New Issue" above to submit a report and test the live status lifecycle.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let citizenMap;
+
+document.addEventListener("DOMContentLoaded", function() {
+    // -----------------------------------------------------------------
+    // 1. DYNAMIC UNREAD NOTIFICATION BADGE LOGIC & TOGGLE HANDLER
+    // -----------------------------------------------------------------
+    const notifBtn = document.getElementById('notifDropdown');
+    const notifMenu = document.getElementById('notifMenu');
+    const badgeElem = document.getElementById('notifBadge');
+    const notifItems = document.querySelectorAll('.notif-item');
+
+    // Get the highest notification ID currently present
+    const latestNotifId = {{ notifications[0].id if notifications else 0 }};
+    
+    // Get last read notification ID from localStorage
+    const storageKey = 'citypulse_last_read_notif_{{ current_user.id }}';
+    const lastReadId = parseInt(localStorage.getItem(storageKey) || '0');
+
+    // Calculate unread count
+    let unreadCount = 0;
+    notifItems.forEach(item => {
+        const nid = parseInt(item.getAttribute('data-notif-id') || '0');
+        if (nid > lastReadId) {
+            unreadCount++;
+            item.classList.add('bg-primary-subtle', 'border-start', 'border-4', 'border-primary');
+        }
+    });
+
+    // Update badge display state
+    if (unreadCount > 0) {
+        badgeElem.innerText = unreadCount;
+        badgeElem.style.display = 'inline-block';
+    } else {
+        badgeElem.style.display = 'none';
+    }
+
+    if (notifBtn && notifMenu) {
+        notifBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isShowing = notifMenu.classList.contains('show');
+            notifMenu.classList.toggle('show');
+
+            // When opening menu, mark all current notifications as read & hide badge
+            if (!isShowing) {
+                if (badgeElem) {
+                    badgeElem.style.display = 'none';
+                }
+                if (latestNotifId > 0) {
+                    localStorage.setItem(storageKey, latestNotifId.toString());
+                }
+                // Remove highlight from unread items
+                notifItems.forEach(item => {
+                    item.classList.remove('bg-primary-subtle', 'border-start', 'border-4', 'border-primary');
+                });
+            }
+        });
+
+        // Close menu on click outside
+        document.addEventListener('click', function(e) {
+            if (!notifBtn.contains(e.target) && !notifMenu.contains(e.target)) {
+                notifMenu.classList.remove('show');
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------
+    // 2. Leaflet Satellite Map Initialization
+    // -----------------------------------------------------------------
+    const userReports = [
+        {% for c in complaints %}
+        {
+            id: "{{ c.id }}",
+            category: "{{ c.category }}",
+            lat: {{ c.latitude }},
+            lng: {{ c.longitude }},
+            status: "{{ c.status }}",
+            score: {{ c.ai_prediction.priority_score if c.ai_prediction else 20 }}
+        },
+        {% endfor %}
+    ];
+
+    let centerLat = userReports.length > 0 ? userReports[0].lat : 19.9975;
+    let centerLng = userReports.length > 0 ? userReports[0].lng : 73.7898;
+
+    citizenMap = L.map('citizenMap').setView([centerLat, centerLng], 12);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri'
+    }).addTo(citizenMap);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri Reference'
+    }).addTo(citizenMap);
+
+    userReports.forEach(r => {
+        L.marker([r.lat, r.lng])
+            .addTo(citizenMap)
+            .bindPopup(`
+                <div class="p-2">
+                    <strong class="text-primary">#CP${r.id} - ${r.category}</strong><br>
+                    <small class="text-muted d-block">Priority Score: ${r.score}/100</small>
+                    <small class="badge bg-info mt-1">${r.status}</small>
+                </div>
+            `);
+    });
+
+    setTimeout(function() {
+        if (citizenMap) citizenMap.invalidateSize();
+    }, 300);
+
+    document.getElementById('citizenMapSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); smartGeocodeCitizen(); }
+    });
+});
+
+async function smartGeocodeCitizen() {
+    const rawInput = document.getElementById('citizenMapSearch').value.trim();
+    if (!rawInput) return;
+
+    let cleaned = rawInput.replace(/\b(near|opposite to|opposite|behind|next to|beside|in front of)\b/gi, ',');
+    
+    const queryList = [
+        rawInput + ", India",
+        cleaned + ", India",
+        cleaned.split(',')[0] + ", Nashik, India"
+    ];
+
+    for (let q of queryList) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=in`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                citizenMap.setView([lat, lon], 16);
+                return;
+            }
+        } catch (e) { console.error("Geocoding failed", e); }
+    }
+    alert("Location not found.");
+}
+</script>
+{% endblock %}

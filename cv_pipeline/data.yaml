@@ -1,0 +1,10 @@
+# YOLOv8 Dataset Configuration for CITYPULSE AI
+# Replace these paths with the absolute path to your dataset folders later
+train: ../dataset/processed/yolo_format/images/train
+val: ../dataset/processed/yolo_format/images/val
+
+# Number of classes
+nc: 7
+
+# Class names
+names: ['Pothole', 'Garbage', 'Road Crack', 'Streetlight Damage', 'Water Leakage', 'Illegal Dumping', 'Construction Waste']

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row align-items-center py-5 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #0A3161 0%, #1355A6 100%); color: white;">
+    <div class="col-lg-6 p-4 p-lg-5">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white text-primary fw-bold small mb-3 shadow-sm">
+            <span class="pulse-indicator"></span> Real-Time Municipal Operations Active
+        </div>
+        <h1 class="display-4 fw-bold mb-3">Smart Governance.<br>Powered by AI.</h1>
+        <p class="lead mb-4" style="color: #e0e0e0;">CityPulse AI empowers citizens to report infrastructure issues instantly. Computer vision and predictive models automatically classify, verify, priority-score, and dispatch field crews.</p>
+        
+        {% if current_user.is_authenticated %}
+            <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white-50 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="fs-1">👋</div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Welcome back, {{ current_user.name.split()[0] }}!</h5>
+                        <p class="small mb-0 opacity-75">You are currently logged in as a <strong>{{ current_user.role|capitalize }}</strong>.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="d-grid gap-3 d-sm-flex">
+                {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-danger btn-lg px-4 fw-bold shadow-sm rounded-3">
+                        <i class="fa-solid fa-building-shield me-1"></i> Command Center
+                    </a>
+                    <a href="{{ url_for('admin.ds_dashboard') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
+                        <i class="fa-solid fa-flask me-1"></i> Data Science Lab
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('citizen.dashboard') }}" class="btn btn-light btn-lg px-4 fw-bold text-primary shadow-sm rounded-3">
+                        <i class="fa-solid fa-gauge-high me-1"></i> Citizen Dashboard
+                    </a>
+                    <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-success btn-lg px-4 fw-bold shadow-sm rounded-3">
+                        <i class="fa-solid fa-circle-plus me-1"></i> Report Issue
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> Sign Out
+                </a>
+            </div>
+        {% else %}
+            <div class="d-grid gap-3 d-sm-flex">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-lg px-4 fw-bold shadow-sm rounded-3">
+                    <i class="fa-solid fa-user-plus me-1"></i> Register as Citizen
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-4 fw-bold text-primary shadow-sm rounded-3">
+                    <i class="fa-solid fa-right-to-bracket me-1"></i> Citizen Login
+                </a>
+                <a href="{{ url_for('auth.admin_login') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
+                    <i class="fa-solid fa-shield-halved me-1"></i> Admin Login
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-6 p-4 text-center">
+        <div class="position-relative d-inline-block w-100">
+            <img src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80" 
+                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80';" 
+                 alt="Smart City Infrastructure" 
+                 class="img-fluid rounded-4 shadow-lg border border-2 border-white-50" 
+                 style="object-fit: cover; height: 360px; width: 100%;">
+            <div class="position-absolute bottom-0 start-0 m-3 px-3 py-2 bg-dark bg-opacity-75 text-white rounded-3 small shadow">
+                <i class="fa-solid fa-location-dot text-danger me-1"></i> Smart Urban Spatial Monitoring
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="pulse-card p-4 border-top border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-tower-broadcast text-primary me-2"></i> CITYPULSE LIVE STATISTICS
+                    </h5>
+                    <small class="text-muted">Real-time aggregate data synchronized with live PostgreSQL/SQLite database.</small>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+                    <i class="fa-solid fa-circle text-success fs-6 me-1" style="font-size: 8px !important;"></i> Live Sync Active
+                </span>
+            </div>
+            
+            <div class="row text-center g-3">
+                <div class="col-md-2 col-6">
+                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
+                        <span class="fs-2 mb-2 d-block">🏙️</span>
+                        <h3 class="fw-bold mb-0 text-body">{{ stats.total_reported }}</h3>
+                        <p class="text-muted small mb-0 fw-semibold">Issues Reported</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-2 col-6">
+                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
+                        <span class="fs-2 mb-2 d-block">✅</span>
+                        <h3 class="fw-bold mb-0 text-success">{{ stats.total_resolved }}</h3>
+                        <p class="text-muted small mb-0 fw-semibold">Issues Resolved</p>
+                    </div>
+                </div>
+
+                <div class="col-md-2 col-6">
+                    <div class="p-3 rounded-3 bg-body-tertiary border h-100 border-start border-3 border-danger">
+                        <span class="fs-2 mb-2 d-block">🚨</span>
+                        <h3 class="fw-bold mb-0 text-danger">{{ stats.high_priority }}</h3>
+                        <p class="text-muted small mb-0 fw-semibold">High Priority</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
+                        <span class="fs-2 mb-2 d-block">⚡</span>
+                        <h3 class="fw-bold mb-0 text-dark">{{ stats.avg_response_time }}</h3>
+                        <p class="text-muted small mb-0 fw-semibold">Avg. Response Time</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-12">
+                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
+                        <span class="fs-2 mb-2 d-block">👥</span>
+                        <h3 class="fw-bold mb-0 text-primary">{{ stats.active_citizens }}</h3>
+                        <p class="text-muted small mb-0 fw-semibold">Active Citizens</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row text-center mb-5 g-4">
+    <div class="col-md-4">
+        <div class="pulse-card p-4 h-100">
+            <div class="display-4 mb-3" style="color: #B38C4D;">📷</div>
+            <h4 class="fw-bold">YOLOv8 Computer Vision</h4>
+            <p class="text-muted">Upload an image and our custom vision engine automatically detects potholes, garbage heaps, broken lights, or fallen trees with confidence scoring.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="pulse-card p-4 h-100">
+            <div class="display-4 mb-3" style="color: #B38C4D;">🤖</div>
+            <h4 class="fw-bold">Visible AI Issue Analyzer</h4>
+            <p class="text-muted">Type a description to view live NLP classification, severity predictions, location risk points, and automated dispatch recommendations.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="pulse-card p-4 h-100">
+            <div class="display-4 mb-3" style="color: #B38C4D;">📍</div>
+            <h4 class="fw-bold">Haversine Hotspot GIS</h4>
+            <p class="text-muted">Spatial density algorithms group complaints within a 350-meter radius to project glowing threat zones on satellite GIS maps.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.pulse-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #198754;
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+    animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+.login-container { max-width: 450px; margin: 40px auto; }
+.login-card { background: var(--cp-bg-card, #ffffff); border-radius: 16px; border: 1px solid var(--cp-border-color, #e0e0e0); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); overflow: hidden; }
+.password-toggle-btn { cursor: pointer; z-index: 5; }
+</style>
+
+<div class="login-container">
+    <div class="login-card p-4 p-md-5">
+        
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3" style="width: 56px; height: 56px;">
+                <i class="fa-solid fa-user fa-xl"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Citizen Portal</h3>
+            <p class="text-muted small mb-0">Sign in to track your infrastructure reports.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <div class="form-floating mb-3">
+                <input type="email" name="email" class="form-control" id="emailInput" placeholder="name@example.com" required>
+                <label for="emailInput"><i class="fa-solid fa-envelope me-1"></i> Email Address</label>
+            </div>
+
+            <div class="form-floating mb-4 position-relative">
+                <input type="password" name="password" class="form-control" id="passwordInput" placeholder="Password" required>
+                <label for="passwordInput"><i class="fa-solid fa-lock me-1"></i> Password</label>
+                <span class="position-absolute top-50 end-0 translate-middle-y me-3 password-toggle-btn text-muted" onclick="togglePassword()">
+                    <i class="fa-solid fa-eye" id="toggleIcon"></i>
+                </span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm fs-6 mb-3">
+                <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In to Citizen Portal
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="text-center">
+            <p class="text-muted small mb-2">First time here? Register to report an issue.</p>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary w-100 fw-bold py-2">
+                <i class="fa-solid fa-user-plus me-1"></i> Create Citizen Account
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const pwdInput = document.getElementById('passwordInput');
+    const icon = document.getElementById('toggleIcon');
+    if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+    } else {
+        pwdInput.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+    }
+}
+</script>
+{% endblock %}

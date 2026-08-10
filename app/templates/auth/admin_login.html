@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+.login-container { max-width: 450px; margin: 40px auto; }
+.login-card { background: var(--cp-bg-card, #ffffff); border-radius: 16px; border: 1px solid var(--cp-danger, #dc3545); box-shadow: 0 10px 30px rgba(220, 53, 69, 0.15); overflow: hidden; }
+.password-toggle-btn { cursor: pointer; z-index: 5; }
+</style>
+
+<div class="login-container">
+    <div class="login-card p-4 p-md-5 border-top border-4 border-danger">
+        
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-danger text-white rounded-circle mb-3 shadow" style="width: 56px; height: 56px;">
+                <i class="fa-solid fa-shield-halved fa-xl"></i>
+            </div>
+            <h3 class="fw-bold mb-1 text-danger">Command Center</h3>
+            <p class="text-muted small mb-0">Restricted Access. Administrator Login Only.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.admin_login') }}">
+            <div class="form-floating mb-3">
+                <input type="email" name="email" class="form-control" id="emailInput" placeholder="admin@citypulse.gov" required>
+                <label for="emailInput"><i class="fa-solid fa-envelope me-1"></i> Official Email</label>
+            </div>
+
+            <div class="form-floating mb-4 position-relative">
+                <input type="password" name="password" class="form-control" id="passwordInput" placeholder="Password" required>
+                <label for="passwordInput"><i class="fa-solid fa-lock me-1"></i> Admin Password</label>
+                <span class="position-absolute top-50 end-0 translate-middle-y me-3 password-toggle-btn text-muted" onclick="togglePassword()">
+                    <i class="fa-solid fa-eye" id="toggleIcon"></i>
+                </span>
+            </div>
+
+            <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow-sm fs-6 mb-3">
+                <i class="fa-solid fa-server me-1"></i> Access Operations Dashboard
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="text-center small">
+            <a href="{{ url_for('auth.login') }}" class="text-muted text-decoration-none">
+                <i class="fa-solid fa-arrow-left me-1"></i> Return to Citizen Portal
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const pwdInput = document.getElementById('passwordInput');
+    const icon = document.getElementById('toggleIcon');
+    if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+    } else {
+        pwdInput.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+    }
+}
+</script>
+{% endblock %}

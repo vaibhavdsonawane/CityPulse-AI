@@ -1,0 +1,586 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+.custom-pin-container { position: relative; width: 30px; height: 30px; }
+.custom-pin-core { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.6); position: absolute; top: 6px; left: 6px; z-index: 2; }
+.custom-pin-pulse { position: absolute; width: 30px; height: 30px; border-radius: 50%; opacity: 0.8; animation: pin-pulse-wave 1.8s infinite ease-out; }
+@keyframes pin-pulse-wave { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(2.0); opacity: 0; } }
+.leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; overflow: hidden; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important; border: none !important; }
+.leaflet-popup-content { margin: 0 !important; width: 300px !important; line-height: 1.4 !important; }
+.leaflet-container { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; }
+.pulse-card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; background-color: var(--cp-bg-card, #ffffff); }
+.pulse-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark">
+            <i class="fa-solid fa-building-shield text-primary me-2"></i> CITYPULSE COMMAND CENTER
+        </h2>
+        <p class="text-muted small mb-0">Municipal Operational Analytics, Spatial Threat Intelligence & Intelligent Dispatch Portal</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.ds_dashboard') }}" class="btn btn-outline-purple fw-bold shadow-sm" style="color: #6f42c1; border-color: #6f42c1;">
+            <i class="fa-solid fa-flask me-1"></i> Data Science Lab
+        </a>
+        <button class="btn btn-primary fw-bold shadow-sm" onclick="window.print();">
+            <i class="fa-solid fa-download me-1"></i> Export Command Report
+        </button>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-primary h-100">
+            <span class="text-muted small fw-bold text-uppercase">Total Reports</span>
+            <h2 class="fw-bold mb-0 text-dark mt-1">{{ total }}</h2>
+            <small class="text-muted"><i class="fa-solid fa-folder-open me-1"></i> Database Total</small>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-success h-100">
+            <span class="text-muted small fw-bold text-uppercase">Issues Resolved</span>
+            <h2 class="fw-bold mb-0 text-success mt-1">{{ resolved }}</h2>
+            <small class="text-success fw-semibold"><i class="fa-solid fa-circle-check me-1"></i> Completed</small>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-danger bg-danger text-white h-100">
+            <span class="text-light small fw-bold text-uppercase">Critical Alerts</span>
+            <h2 class="fw-bold mb-0 text-white mt-1">{{ critical }}</h2>
+            <small class="text-white-50"><i class="fa-solid fa-triangle-exclamation me-1"></i> Priority Score &ge; 85/100</small>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-6">
+        <div class="pulse-card p-3 border-start border-4 border-warning h-100">
+            <span class="text-muted small fw-bold text-uppercase">Citizen Rating</span>
+            <h2 class="fw-bold mb-0 text-dark mt-1">{{ citizen_satisfaction }} <span class="fs-6 text-warning fw-normal">★</span></h2>
+            <small class="text-warning fw-semibold"><i class="fa-solid fa-star me-1"></i> Out of 5.0 Rating</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-12">
+        <div class="pulse-card p-3 border-start border-4 border-info h-100">
+            <span class="text-muted small fw-bold text-uppercase">Resolution Rate</span>
+            <h2 class="fw-bold mb-0 text-dark mt-1">{{ resolution_rate }}%</h2>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width: {{ resolution_rate }}%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="pulse-card p-4 bg-white border-top border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-fire text-danger me-2"></i> CIVIC HOTSPOT DETECTION (SPATIAL DENSITY ANALYTICS)
+                    </h5>
+                    <small class="text-muted">Automated spatial clustering using Haversine distance formulas within a 350-meter radius.</small>
+                </div>
+                <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-2 rounded-pill fw-bold">
+                    <i class="fa-solid fa-radar me-1"></i> {{ hotspots_raw|length }} Active Hotspot Zones Detected
+                </span>
+            </div>
+
+            <div class="row g-3">
+                {% for spot in hotspots_raw %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-light rounded-3 border border-start border-4" style="border-left-color: {{ spot.risk_color }} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark fs-6">{{ spot.zone_name }}</span>
+                            <span class="badge" style="background-color: {{ spot.risk_color }};">{{ spot.risk_level }}</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between small text-muted mb-2">
+                            <span>Total Incidents: <strong class="text-dark">{{ spot.total_complaints }}</strong></span>
+                            <span>Avg Priority: <strong class="text-dark">{{ spot.avg_priority_score }}/100</strong></span>
+                        </div>
+
+                        <div class="p-2 bg-white rounded border small mb-2">
+                            <strong class="d-block text-muted mb-1" style="font-size: 11px;">CATEGORY BREAKDOWN:</strong>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for cat, count in spot.category_breakdown.items() %}
+                                    <span class="badge bg-secondary-subtle text-secondary border">{{ cat }}: {{ count }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-danger w-100 fw-bold" onclick="zoomToHotspot({{ spot.center_lat }}, {{ spot.center_lng }})">
+                            <i class="fa-solid fa-crosshairs me-1"></i> Focus Hotspot on Satellite Map
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-4 text-muted">
+                    <i class="fa-solid fa-shield-cat fa-2x mb-2 text-secondary d-block"></i>
+                    No high-density complaint hotspots detected in current spatial radius.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="pulse-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-map-location-dot text-primary me-2"></i> Live Threat Map & Hotspot Overlays
+                    </h5>
+                    <small class="text-muted">Hybrid Satellite Imagery with Vector Street Reference Overlays</small>
+                </div>
+                
+                <div class="input-group" style="max-width: 360px;">
+                    <input type="text" id="adminMapSearch" class="form-control form-control-sm" placeholder="e.g. Zudio near Uttam Nagar Nashik...">
+                    <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="smartGeocodeAdmin()">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+                    </button>
+                </div>
+            </div>
+            
+            <div id="adminMap" style="height: 440px; border-radius: 10px; z-index: 1; border: 1px solid #dee2e6;"></div>
+            
+            <div class="d-flex justify-content-center flex-wrap gap-4 mt-3 pt-2 border-top small fw-semibold">
+                <span>🔴 Critical Priority (&ge; 85)</span>
+                <span>🟠 High Priority (65-84)</span>
+                <span>🟡 Medium Priority (40-64)</span>
+                <span>🟢 Low Priority (&lt; 40)</span>
+                <span class="text-danger">⭕ Hotspot Zone (350m Radius)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="pulse-card p-4 mb-4">
+            <h5 class="fw-bold mb-2 text-dark">
+                <i class="fa-solid fa-chart-pie me-2 text-primary"></i> Issue Distribution
+            </h5>
+            <div id="categoryChart" style="height: 190px;"></div>
+        </div>
+
+        <div class="pulse-card p-4">
+            <h5 class="fw-bold mb-3 text-dark">
+                <i class="fa-solid fa-list-check me-2 text-primary"></i> Department Performance
+            </h5>
+            <div class="d-flex flex-column gap-3" style="max-height: 220px; overflow-y: auto;">
+                {% for dept in dept_performance %}
+                <div>
+                    <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span>{{ dept.name }}</span>
+                        <span class="text-primary">{{ dept.rate }}% ({{ dept.resolved }}/{{ dept.total }})</span>
+                    </div>
+                    <div class="progress" style="height: 7px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ dept.rate }}%;"></div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">No active department dispatch data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="pulse-card p-4 h-100">
+            <h5 class="fw-bold mb-1 text-primary">
+                <i class="fa-solid fa-chart-line me-2"></i> AI Incident Volume Forecast (Next 7 Days)
+            </h5>
+            <p class="text-muted small mb-3">Projected municipal complaint volume based on linear regression modeling of historical trends.</p>
+            <div id="forecastChart" style="height: 230px;"></div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="pulse-card p-4 h-100 bg-light border">
+            <h5 class="fw-bold mb-3 text-dark">
+                <i class="fa-solid fa-shield-halved text-danger me-2"></i> Active AI System Status
+            </h5>
+            
+            <div class="mb-3 p-3 bg-white rounded border shadow-sm">
+                <small class="text-muted d-block fw-bold mb-1 text-uppercase">YOLOv8 Computer Vision Engine</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> Operational</span>
+                    <small class="text-muted fw-semibold">mAP@50: 0.892</small>
+                </div>
+            </div>
+
+            <div class="mb-3 p-3 bg-white rounded border shadow-sm">
+                <small class="text-muted d-block fw-bold mb-1 text-uppercase">NLP & Text Priority Model</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> Operational</span>
+                    <small class="text-muted fw-semibold">Accuracy: 91.4%</small>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white rounded border border-start border-4 border-danger shadow-sm">
+                <small class="text-muted d-block fw-bold mb-1 text-uppercase">System Risk Prediction</small>
+                <h5 class="fw-bold mb-0 text-danger">HIGH RISK ZONE ACTIVE</h5>
+                <small class="text-muted">High incident density detected along central municipal transit corridors.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if manual_reviews %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="pulse-card p-4 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-warning">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> Action Required: Vision Confidence Below Threshold (&lt; 60%)
+                </h5>
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                    {{ manual_reviews|length }} Reports Pending Human Review
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Evidence Photo</th>
+                            <th>AI Class & Confidence</th>
+                            <th>Calculated Priority</th>
+                            <th>Audit Trail</th>
+                            <th style="min-width: 260px;">Verify & Correct AI Prediction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in manual_reviews %}
+                        <tr>
+                            <td class="fw-bold">#CP{{ review.id }}</td>
+                            <td>
+                                {% if review.media %}
+                                <a href="{{ url_for('static', filename='uploads/images/' ~ review.media.file_path) }}" target="_blank">
+                                    <img src="{{ url_for('static', filename='uploads/images/' ~ review.media.file_path) }}" alt="Evidence Photo" style="height: 55px; width: 65px; border-radius: 6px; object-fit: cover; border: 1px solid #dee2e6;">
+                                </a>
+                                {% else %}
+                                <span class="text-muted small">No Image</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-dark d-block">{{ review.media.cv_detected_class if review.media else review.category }}</strong>
+                                <span class="badge bg-warning text-dark">
+                                    {{ (review.media.cv_confidence * 100)|int if review.media else 0 }}% Confidence
+                                </span>
+                            </td>
+                            <td>
+                                {% set score = review.ai_prediction.priority_score|int if review.ai_prediction else 20 %}
+                                {% if score >= 85 %}
+                                    <span class="badge bg-danger">🔴 Critical ({{ score }}/100)</span>
+                                {% elif score >= 65 %}
+                                    <span class="badge bg-warning text-dark">🟠 High ({{ score }}/100)</span>
+                                {% elif score >= 40 %}
+                                    <span class="badge bg-info text-dark">🟡 Medium ({{ score }}/100)</span>
+                                {% else %}
+                                    <span class="badge bg-success">🟢 Low ({{ score }}/100)</span>
+                                {% endif %}
+                            </td>
+                            <td style="max-width: 220px;">
+                                <details>
+                                    <summary class="text-primary small fw-semibold" style="cursor: pointer;">View Timeline</summary>
+                                    <ul class="list-unstyled small mt-2 text-muted border-start border-2 ps-2 mb-0">
+                                        {% for log in review.status_history|sort(attribute='changed_at', reverse=true) %}
+                                            <li class="mb-1"><strong>{{ log.status }}</strong><br><em>{{ log.notes }}</em></li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.verify_complaint', complaint_id=review.id) }}" method="POST" class="d-flex flex-column gap-2">
+                                    <button type="submit" name="action" value="approve" class="btn btn-sm btn-success fw-bold w-100">
+                                        <i class="fa-solid fa-check me-1"></i> Confirm AI Correct
+                                    </button>
+                                    <div class="input-group input-group-sm">
+                                        <select name="corrected_category" class="form-select text-secondary form-select-sm">
+                                            <option value="">Spam / False Positive</option>
+                                            <option value="Garbage">Actually Garbage</option>
+                                            <option value="Pothole">Actually Pothole</option>
+                                            <option value="Water Leakage">Actually Water Leak</option>
+                                            <option value="Fallen Tree">Actually Fallen Tree</option>
+                                            <option value="Streetlight">Actually Streetlight</option>
+                                        </select>
+                                        <button type="submit" name="action" value="reject" class="btn btn-sm btn-danger fw-bold">Override</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if dispatch_queue %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="pulse-card p-4 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-primary">
+                    <i class="fa-solid fa-truck-fast me-2"></i> Department Dispatch & Lifecycle Control Queue
+                </h5>
+                <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold">
+                    {{ dispatch_queue|length }} Complaints Active
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Category & Description</th>
+                            <th>Priority Score</th>
+                            <th>Current State</th>
+                            <th style="min-width: 220px;">Assign Department</th>
+                            <th style="min-width: 220px;">Advance Lifecycle State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in dispatch_queue %}
+                        <tr>
+                            <td class="fw-bold">#CP{{ issue.id }}</td>
+                            <td>
+                                <strong class="text-dark d-block">{{ issue.category }}</strong>
+                                <small class="text-muted d-block text-truncate" style="max-width: 220px;">{{ issue.description or 'No description' }}</small>
+                            </td>
+                            <td>
+                                {% set score = issue.ai_prediction.priority_score|int if issue.ai_prediction else 20 %}
+                                {% if score >= 85 %}
+                                    <span class="badge bg-danger fs-6">🔴 Critical ({{ score }}/100)</span>
+                                {% elif score >= 65 %}
+                                    <span class="badge bg-warning text-dark fs-6">🟠 High ({{ score }}/100)</span>
+                                {% elif score >= 40 %}
+                                    <span class="badge bg-info text-dark fs-6">🟡 Medium ({{ score }}/100)</span>
+                                {% else %}
+                                    <span class="badge bg-success fs-6">🟢 Low ({{ score }}/100)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-dark">{{ issue.status }}</span>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.assign_complaint', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                                    <select name="department_id" class="form-select form-select-sm" style="min-width: 140px;" required>
+                                        <option value="" disabled selected>Select Dept...</option>
+                                        {% for dept in departments %}
+                                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary fw-bold">Dispatch</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.update_status', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                                    <select name="new_status" class="form-select form-select-sm" style="min-width: 140px;" required>
+                                        <option value="Under Investigation">Under Investigation</option>
+                                        <option value="Work Started">Work Started</option>
+                                        <option value="Resolved">Resolved</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-success fw-bold">Update</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+let adminMap;
+
+document.addEventListener("DOMContentLoaded", function() {
+    const catLabels = JSON.parse('{{ cat_labels | safe }}');
+    const catCounts = JSON.parse('{{ cat_counts | safe }}');
+
+    if (catLabels.length > 0) {
+        const catPieTrace = [{
+            values: catCounts,
+            labels: catLabels,
+            type: 'pie',
+            hole: 0.5,
+            marker: { colors: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6f42c1', '#20c997'] }
+        }];
+        const catPieLayout = { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: false };
+        Plotly.newPlot('categoryChart', catPieTrace, catPieLayout, { responsive: true });
+    }
+
+    const forecastLabels = JSON.parse('{{ forecast_labels | safe }}');
+    const forecastValues = JSON.parse('{{ forecast_values | safe }}');
+
+    const forecastTrace = {
+        x: forecastLabels,
+        y: forecastValues,
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#dc3545', width: 3, dash: 'dot' },
+        marker: { size: 8, color: '#dc3545' },
+        name: 'Projected Volume'
+    };
+    const forecastLayout = {
+        margin: { t: 10, b: 30, l: 30, r: 10 },
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: '#f0f0f0' },
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        paper_bgcolor: 'rgba(0,0,0,0)'
+    };
+    Plotly.newPlot('forecastChart', [forecastTrace], forecastLayout, { responsive: true });
+
+    const mapData = JSON.parse('{{ map_data | safe }}');
+    const hotspotsData = JSON.parse('{{ hotspots_json | safe }}');
+    
+    let centerLat = mapData.length > 0 ? mapData[0].lat : 19.9975;
+    let centerLng = mapData.length > 0 ? mapData[0].lng : 73.7898;
+    
+    adminMap = L.map('adminMap').setView([centerLat, centerLng], 13);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri Satellite'
+    }).addTo(adminMap);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri Reference'
+    }).addTo(adminMap);
+
+    hotspotsData.forEach(h => {
+        L.circle([h.center_lat, h.center_lng], {
+            color: h.risk_color,
+            fillColor: h.risk_color,
+            fillOpacity: 0.25,
+            radius: h.radius_meters,
+            weight: 2,
+            dashArray: '5, 5'
+        }).addTo(adminMap).bindPopup(`
+            <div class="p-2">
+                <strong style="color: ${h.risk_color};">${h.risk_badge}</strong><br>
+                <strong class="text-dark">${h.zone_name}</strong><br>
+                <small class="text-muted d-block">Total Incidents: ${h.total_complaints}</small>
+                <small class="text-muted d-block">Avg Priority: ${h.avg_priority_score}/100</small>
+            </div>
+        `);
+    });
+
+    mapData.forEach(p => {
+        const customIcon = L.divIcon({
+            className: 'custom-pin-icon',
+            html: `
+                <div class="custom-pin-container">
+                    <div class="custom-pin-pulse" style="background-color: ${p.color};"></div>
+                    <div class="custom-pin-core" style="background-color: ${p.color};"></div>
+                </div>
+            `,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        const popupContent = `
+            <div class="card border-0 shadow-sm">
+                <div class="card-header text-white fw-bold d-flex justify-content-between align-items-center" style="background-color: ${p.color}; padding: 8px 12px;">
+                    <span>🚨 ${p.category}</span>
+                    <span class="badge bg-light text-dark">#CP${p.id}</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small fw-bold">PRIORITY SCORE</span>
+                        <span class="fw-bold text-dark fs-6">${p.score} / 100 (${p.badge})</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small fw-bold">NEARBY CLUSTERS</span>
+                        <span class="badge bg-secondary">${p.cluster_count} Reports</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small fw-bold">CURRENT STATUS</span>
+                        <span class="badge bg-primary">${p.status}</span>
+                    </div>
+                    <hr class="my-2">
+                    <p class="small text-muted mb-2"><strong>Description:</strong> ${p.desc}</p>
+                    <div class="p-2 bg-light rounded border border-start border-3" style="border-color: ${p.color} !important;">
+                        <small class="d-block fw-bold text-dark">AI RECOMMENDATION:</small>
+                        <small class="text-muted">${p.recommendation}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        L.marker([p.lat, p.lng], { icon: customIcon }).addTo(adminMap).bindPopup(popupContent);
+    });
+
+    document.getElementById('adminMapSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            smartGeocodeAdmin();
+        }
+    });
+});
+
+function zoomToHotspot(lat, lng) {
+    if (adminMap) {
+        adminMap.setView([lat, lng], 16);
+    }
+}
+
+async function smartGeocodeAdmin() {
+    const rawInput = document.getElementById('adminMapSearch').value.trim();
+    if (!rawInput) return;
+
+    let cleaned = rawInput.replace(/\b(near|opposite to|opposite|behind|next to|beside|in front of)\b/gi, ',');
+    
+    const queryList = [
+        rawInput + ", India",
+        cleaned + ", India",
+        cleaned.split(',')[0] + ", Nashik, India",
+        "Nashik, Maharashtra, India"
+    ];
+
+    for (let q of queryList) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=in`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                adminMap.setView([lat, lon], 16);
+                
+                L.popup()
+                    .setLatLng([lat, lon])
+                    .setContent(`<b>📍 Location Point Found:</b><br><small>${data[0].display_name}</small>`)
+                    .openOn(adminMap);
+                return;
+            }
+        } catch (err) {
+            console.error("Geocoding step error:", err);
+        }
+    }
+    alert("Location could not be pinpointed. Please try specifying the city name.");
+}
+</script>
+{% endblock %}

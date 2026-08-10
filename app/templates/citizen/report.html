@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+#reportMap {
+    height: 380px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--cp-border-color, #dee2e6);
+    z-index: 1;
+}
+.leaflet-popup-content-wrapper { border-radius: 10px !important; overflow: hidden; }
+.leaflet-popup-content { margin: 0 !important; width: 260px !important; }
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-0">Report an Infrastructure Issue</h2>
+                <p class="text-muted">Type a description below to watch the visible AI Priority Score engine calculate real-time urgency.</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                <i class="fa-solid fa-brain me-1"></i> Visible AI Active
+            </span>
+        </div>
+        
+        <div class="pulse-card p-4">
+            <form method="POST" enctype="multipart/form-data">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">1. Describe the Problem <span class="text-primary">(Live AI Priority Scoring)</span></label>
+                    <textarea name="description" id="descInput" class="form-control" rows="3" 
+                              placeholder="e.g. There is a large pothole near Trimurti Chowk causing severe traffic jams..."
+                              oninput="triggerAIAnalysis()"></textarea>
+                    <div class="form-text">Type to see live mathematical formula breakdown: Priority = Severity + Location Risk + Impact + Frequency</div>
+                </div>
+
+                <div id="aiAnalyzerCard" class="card mb-4 border-2 border-primary bg-light shadow-sm" style="display: none;">
+                    <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-microchip me-2"></i> AI Issue Analyzer Engine</span>
+                        <span class="badge bg-white text-primary fw-bold" id="aiConfBadge">Cat Conf: --%</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-white rounded border">
+                            <div>
+                                <h6 class="text-muted mb-0 small fw-bold text-uppercase">Calculated Priority Score</h6>
+                                <h2 class="fw-bold mb-0 text-dark" id="aiPriorityNum">0 <span class="fs-6 text-muted">/ 100</span></h2>
+                            </div>
+                            <div>
+                                <span class="badge fs-5 px-3 py-2 shadow-sm" id="aiPriorityBadge">🟢 Low</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 text-center mb-3">
+                            <div class="col-md-3 col-6">
+                                <div class="bg-white p-2 rounded border">
+                                    <small class="text-muted d-block fw-semibold">🏷️ Severity</small>
+                                    <strong class="text-primary fs-6" id="aiSevPts">+0</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="bg-white p-2 rounded border">
+                                    <small class="text-muted d-block fw-semibold">📍 Location Risk</small>
+                                    <strong class="text-primary fs-6" id="aiLocPts">+0</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="bg-white p-2 rounded border">
+                                    <small class="text-muted d-block fw-semibold">👥 Impact Score</small>
+                                    <strong class="text-primary fs-6" id="aiImpPts">+0</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="bg-white p-2 rounded border">
+                                    <small class="text-muted d-block fw-semibold">🔄 Frequency</small>
+                                    <strong class="text-primary fs-6" id="aiFreqPts">+0</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-white rounded border border-start border-4 border-info">
+                            <h6 class="fw-bold mb-1 text-info"><i class="fa-solid fa-lightbulb me-1"></i> AI Recommendation</h6>
+                            <p class="mb-0 small text-muted" id="aiRec">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">2. Issue Category</label>
+                        <select name="category" id="categorySelect" class="form-select" required>
+                            <option value="Auto" selected>✨ Auto-Detect with AI (Recommended)</option>
+                            <option value="Pothole">Pothole / Road Damage</option>
+                            <option value="Garbage">Garbage / Illegal Dumping</option>
+                            <option value="Water Leakage">Water Leakage / Pipe Burst</option>
+                            <option value="Fallen Tree">Fallen Tree / Blocked Path</option>
+                            <option value="Streetlight">Broken Streetlight</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">3. Upload Photo Evidence</label>
+                        <input type="file" name="issue_image" class="form-control" accept=".jpg,.jpeg,.png" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold">4. Confirm Incident Location</label>
+                    <p class="text-muted small mb-2">Search address or drag the pin directly on the satellite map.</p>
+                    
+                    <div class="input-group mb-2">
+                        <input type="text" id="mapSearchInput" class="form-control" placeholder="Search address (e.g. Zudio near Uttam Nagar Nashik)...">
+                        <button type="button" class="btn btn-primary fw-bold" onclick="smartGeocodeReport()">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Search Location
+                        </button>
+                    </div>
+
+                    <div id="reportMap"></div>
+                    
+                    <input type="hidden" name="latitude" id="latInput" required>
+                    <input type="hidden" name="longitude" id="lngInput" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 fs-5 shadow">Submit Report for AI Priority Processing</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let reportMap, marker, debounceTimer;
+
+document.addEventListener("DOMContentLoaded", function() {
+    const defaultLat = 19.9975;
+    const defaultLng = 73.7898;
+
+    reportMap = L.map('reportMap').setView([defaultLat, defaultLng], 13);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
+        maxZoom: 19, attribution: 'Esri Satellite' 
+    }).addTo(reportMap);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Esri Reference'
+    }).addTo(reportMap);
+
+    setTimeout(function() {
+        if (reportMap) reportMap.invalidateSize();
+    }, 300);
+
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                reportMap.setView([lat, lng], 16);
+                setMarker(lat, lng);
+            },
+            function() { setMarker(defaultLat, defaultLng); },
+            { timeout: 5000 }
+        );
+    } else { 
+        setMarker(defaultLat, defaultLng); 
+    }
+
+    reportMap.on('click', function(e) { 
+        setMarker(e.latlng.lat, e.latlng.lng); 
+    });
+
+    document.getElementById('mapSearchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); smartGeocodeReport(); }
+    });
+});
+
+function setMarker(lat, lng) {
+    if (marker) {
+        marker.setLatLng([lat, lng]);
+    } else {
+        marker = L.marker([lat, lng], {draggable: true}).addTo(reportMap);
+        marker.on('dragend', function() {
+            const pos = marker.getLatLng();
+            updateInputsAndReverseGeocode(pos.lat, pos.lng);
+        });
+    }
+    updateInputsAndReverseGeocode(lat, lng);
+}
+
+async function updateInputsAndReverseGeocode(lat, lng) {
+    document.getElementById('latInput').value = lat;
+    document.getElementById('lngInput').value = lng;
+
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        if (data && data.display_name) {
+            const shortName = data.display_name.length > 75 ? data.display_name.substring(0, 75) + '...' : data.display_name;
+            marker.bindPopup(`
+                <div class="p-2">
+                    <small class="fw-bold text-primary">📍 Incident Pin Dropped</small><br>
+                    <small class="text-muted">${shortName}</small>
+                </div>
+            `).openPopup();
+        }
+    } catch (e) { console.error("Reverse geocode failed", e); }
+}
+
+async function smartGeocodeReport() {
+    const rawInput = document.getElementById('mapSearchInput').value.trim();
+    if (!rawInput) return;
+
+    let cleaned = rawInput.replace(/\b(near|opposite to|opposite|behind|next to|beside|in front of)\b/gi, ',');
+    
+    const queryList = [
+        rawInput + ", India",
+        cleaned + ", India",
+        cleaned.split(',')[0] + ", Nashik, India",
+        "Nashik, Maharashtra, India"
+    ];
+
+    for (let q of queryList) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=in`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                reportMap.setView([lat, lon], 17);
+                setMarker(lat, lon);
+                return;
+            }
+        } catch (err) { console.error("Geocoding step failed", err); }
+    }
+    alert("Location could not be pinpointed. Try searching with landmark or city name.");
+}
+
+// 🤖 Real-time AI Text Analyzer Trigger
+function triggerAIAnalysis() {
+    clearTimeout(debounceTimer);
+    const text = document.getElementById('descInput').value;
+    
+    if (text.length < 6) {
+        document.getElementById('aiAnalyzerCard').style.display = 'none';
+        return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+        try {
+            const response = await fetch('/citizen/api/analyze-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: text })
+            });
+            const data = await response.json();
+
+            document.getElementById('aiPriorityNum').innerHTML = `${data.priority_score} <span class="fs-6 text-muted">/ 100</span>`;
+            const badgeElem = document.getElementById('aiPriorityBadge');
+            badgeElem.innerText = data.priority_badge;
+            badgeElem.className = `badge fs-5 px-3 py-2 shadow-sm ${data.badge_color}`;
+
+            document.getElementById('aiSevPts').innerText = `+${data.severity_pts}`;
+            document.getElementById('aiLocPts').innerText = `+${data.location_pts}`;
+            document.getElementById('aiImpPts').innerText = `+${data.impact_pts}`;
+            document.getElementById('aiFreqPts').innerText = `+${data.frequency_pts}`;
+
+            document.getElementById('aiConfBadge').innerText = `Cat Conf: ${data.category_confidence}%`;
+            document.getElementById('aiRec').innerText = data.recommendation;
+
+            document.getElementById('aiAnalyzerCard').style.display = 'block';
+
+            const catSelect = document.getElementById('categorySelect');
+            if (catSelect.value === 'Auto') {
+                for (let option of catSelect.options) {
+                    if (option.value === data.predicted_category) {
+                        option.selected = true;
+                        break;
+                    }
+                }
+            }
+        } catch (e) { console.error("AI Analysis failed", e); }
+    }, 400);
+}
+</script>
+{% endblock %}

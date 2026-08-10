@@ -1,0 +1,59 @@
+/* Institutional Government Theme */
+:root {
+    --gov-navy: #0A3161;
+    --gov-blue: #1355A6;
+    --gov-gold: #B38C4D;
+    --gov-gray: #F4F6F9;
+    --text-main: #333333;
+}
+
+body {
+    background-color: var(--gov-gray);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-main);
+}
+
+/* Elegant Navbar */
+.navbar {
+    background-color: var(--gov-navy) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.navbar-brand, .nav-link {
+    color: #ffffff !important;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+.nav-link:hover { color: var(--gov-gold) !important; }
+
+/* Professional Cards */
+.pulse-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.pulse-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+/* Modern Buttons */
+.btn-primary {
+    background-color: var(--gov-blue);
+    border-color: var(--gov-blue);
+    border-radius: 6px;
+    font-weight: 600;
+}
+.btn-primary:hover {
+    background-color: var(--gov-navy);
+    border-color: var(--gov-navy);
+}
+
+/* Custom Table Styling */
+.table thead {
+    background-color: #f8f9fa;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
