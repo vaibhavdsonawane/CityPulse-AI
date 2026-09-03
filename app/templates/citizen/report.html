@@ -7,11 +7,11 @@
 #reportMap {
     height: 380px;
     width: 100%;
-    border-radius: 12px;
+    border-radius: var(--cp-radius-lg, 16px);
     border: 1px solid var(--cp-border-color, #dee2e6);
     z-index: 1;
 }
-.leaflet-popup-content-wrapper { border-radius: 10px !important; overflow: hidden; }
+.leaflet-popup-content-wrapper { border-radius: 12px !important; overflow: hidden; }
 .leaflet-popup-content { margin: 0 !important; width: 260px !important; }
 </style>
 
@@ -19,7 +19,7 @@
     <div class="col-md-9">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold mb-0">Report an Infrastructure Issue</h2>
+                <h2 class="fw-bold mb-0 text-dark">Report an Infrastructure Issue</h2>
                 <p class="text-muted">Type a description below to watch the visible AI Priority Score engine calculate real-time urgency.</p>
             </div>
             <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
@@ -28,20 +28,23 @@
         </div>
         
         <div class="pulse-card p-4">
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" id="reportForm" onsubmit="preventDoubleSubmit(event)">
                 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">1. Describe the Problem <span class="text-primary">(Live AI Priority Scoring)</span></label>
+                    <label class="form-label fw-bold text-dark">1. Describe the Problem <span class="text-primary">(Live AI Priority Scoring)</span></label>
                     <textarea name="description" id="descInput" class="form-control" rows="3" 
                               placeholder="e.g. There is a large pothole near Trimurti Chowk causing severe traffic jams..."
-                              oninput="triggerAIAnalysis()"></textarea>
+                              oninput="triggerAIAnalysis()" required></textarea>
                     <div class="form-text">Type to see live mathematical formula breakdown: Priority = Severity + Location Risk + Impact + Frequency</div>
                 </div>
 
                 <div id="aiAnalyzerCard" class="card mb-4 border-2 border-primary bg-light shadow-sm" style="display: none;">
                     <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
                         <span><i class="fa-solid fa-microchip me-2"></i> AI Issue Analyzer Engine</span>
-                        <span class="badge bg-white text-primary fw-bold" id="aiConfBadge">Cat Conf: --%</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="aiLoadingSpinner" class="ai-spinner text-white" style="display: none;"></span>
+                            <span class="badge bg-white text-primary fw-bold" id="aiConfBadge">Cat Conf: --%</span>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-white rounded border">
@@ -90,7 +93,7 @@
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">2. Issue Category</label>
+                        <label class="form-label fw-bold text-dark">2. Issue Category</label>
                         <select name="category" id="categorySelect" class="form-select" required>
                             <option value="Auto" selected>✨ Auto-Detect with AI (Recommended)</option>
                             <option value="Pothole">Pothole / Road Damage</option>
@@ -101,13 +104,13 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">3. Upload Photo Evidence</label>
+                        <label class="form-label fw-bold text-dark">3. Upload Photo Evidence</label>
                         <input type="file" name="issue_image" class="form-control" accept=".jpg,.jpeg,.png" required>
                     </div>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label fw-bold">4. Confirm Incident Location</label>
+                    <label class="form-label fw-bold text-dark">4. Confirm Incident Location</label>
                     <p class="text-muted small mb-2">Search address or drag the pin directly on the satellite map.</p>
                     
                     <div class="input-group mb-2">
@@ -123,7 +126,9 @@
                     <input type="hidden" name="longitude" id="lngInput" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 fs-5 shadow">Submit Report for AI Priority Processing</button>
+                <button type="submit" id="submitReportBtn" class="btn btn-primary w-100 fw-bold py-3 fs-5 shadow">
+                    Submit Report for AI Priority Processing
+                </button>
             </form>
         </div>
     </div>
@@ -134,6 +139,23 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 let reportMap, marker, debounceTimer;
+let isSubmitting = false;
+
+// 🛑 PREVENT DOUBLE SUBMISSION ON CLIENT-SIDE
+function preventDoubleSubmit(e) {
+    if (isSubmitting) {
+        e.preventDefault();
+        return false;
+    }
+
+    const btn = document.getElementById('submitReportBtn');
+    if (btn) {
+        isSubmitting = true;
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        btn.innerHTML = '<span class="ai-spinner me-2"></span> Submitting & Analyzing Report with AI...';
+    }
+}
 
 document.addEventListener("DOMContentLoaded", function() {
     const defaultLat = 19.9975;
@@ -173,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     document.getElementById('mapSearchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); smartGeocodeReport(); }
+        if (e.key === 'Enter') { e.preventDefault(); smartGeocodeCitizen(); }
     });
 });
 
@@ -240,15 +262,17 @@ async function smartGeocodeReport() {
     alert("Location could not be pinpointed. Try searching with landmark or city name.");
 }
 
-// 🤖 Real-time AI Text Analyzer Trigger
 function triggerAIAnalysis() {
     clearTimeout(debounceTimer);
     const text = document.getElementById('descInput').value;
+    const spinner = document.getElementById('aiLoadingSpinner');
     
     if (text.length < 6) {
         document.getElementById('aiAnalyzerCard').style.display = 'none';
         return;
     }
+
+    if (spinner) spinner.style.display = 'inline-block';
 
     debounceTimer = setTimeout(async () => {
         try {
@@ -283,8 +307,12 @@ function triggerAIAnalysis() {
                     }
                 }
             }
-        } catch (e) { console.error("AI Analysis failed", e); }
-    }, 400);
+        } catch (e) { 
+            console.error("AI Analysis failed", e); 
+        } finally {
+            if (spinner) spinner.style.display = 'none';
+        }
+    }, 350);
 }
 </script>
 {% endblock %}

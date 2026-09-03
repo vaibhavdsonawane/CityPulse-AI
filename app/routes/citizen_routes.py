@@ -1,6 +1,6 @@
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
@@ -166,10 +166,23 @@ def submit_feedback(complaint_id):
 def report_issue():
     if request.method == 'POST':
         category = request.form.get('category')
-        description = request.form.get('description', '')
+        description = request.form.get('description', '').strip()
         latitude = request.form.get('latitude')
         longitude = request.form.get('longitude')
         
+        # 🛑 BACKEND DEBOUNCE / DUPLICATE SUBMISSION GUARD
+        # Prevents race conditions if a user rapid-clicks or submits duplicate requests within 10 seconds
+        ten_seconds_ago = datetime.utcnow() - timedelta(seconds=10)
+        recent_duplicate = Complaint.query.filter(
+            Complaint.user_id == current_user.id,
+            Complaint.description == description,
+            Complaint.reported_at >= ten_seconds_ago
+        ).first()
+
+        if recent_duplicate:
+            flash(f'Report #CP{recent_duplicate.id} is already being processed! Duplicate submission prevented.', 'info')
+            return redirect(url_for('citizen.dashboard'))
+
         freq_count = Complaint.query.filter_by(category=category).count() + 1 if category and category != 'Auto' else 1
         text_analysis = nlp_ai.predict_from_text(description, complaint_frequency=freq_count)
         

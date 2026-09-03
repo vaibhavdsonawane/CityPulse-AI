@@ -1,59 +1,242 @@
-/* Institutional Government Theme */
+/* ========================================================= */
+/* 🎨 CITYPULSE AI - MODERN ENTERPRISE DESIGN SYSTEM          */
+/* ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
 :root {
-    --gov-navy: #0A3161;
-    --gov-blue: #1355A6;
-    --gov-gold: #B38C4D;
-    --gov-gray: #F4F6F9;
-    --text-main: #333333;
+    /* Core Brand Tokens */
+    --cp-primary: #0A3161;
+    --cp-primary-hover: #08264d;
+    --cp-primary-light: #e8f0fe;
+    --cp-secondary: #B38C4D;
+    
+    /* Semantic Status Tokens */
+    --cp-success: #198754;
+    --cp-success-subtle: #d1e7dd;
+    --cp-warning: #fd7e14;
+    --cp-warning-subtle: #ffe5d0;
+    --cp-danger: #dc3545;
+    --cp-danger-subtle: #f8d7da;
+    --cp-info: #0dcaf0;
+    --cp-info-subtle: #cff4fc;
+    
+    /* Surface & Background Palette */
+    --cp-bg-main: #f8fafc;
+    --cp-bg-card: #ffffff;
+    --cp-bg-input: #ffffff;
+    --cp-text-main: #0f172a;
+    --cp-text-muted: #64748b;
+    --cp-border-color: #e2e8f0;
+    
+    /* Elevation Shadows */
+    --cp-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --cp-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --cp-shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.12);
+    --cp-shadow-hover: 0 20px 40px rgba(10, 49, 97, 0.12);
+    
+    /* Geometry */
+    --cp-radius-sm: 8px;
+    --cp-radius-md: 12px;
+    --cp-radius-lg: 16px;
+    --cp-radius-xl: 24px;
+    
+    /* Typography */
+    --cp-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --cp-font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Base Document Styling */
 body {
-    background-color: var(--gov-gray);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--text-main);
+    font-family: var(--cp-font-sans);
+    background-color: var(--cp-bg-main);
+    color: var(--cp-text-main);
+    line-height: 1.6;
+    letter-spacing: -0.011em;
 }
 
-/* Elegant Navbar */
-.navbar {
-    background-color: var(--gov-navy) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+h1, h2, h3, h4, h5, h6, .navbar-brand {
+    font-family: var(--cp-font-heading);
+    letter-spacing: -0.02em;
 }
-.navbar-brand, .nav-link {
-    color: #ffffff !important;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-.nav-link:hover { color: var(--gov-gold) !important; }
 
-/* Professional Cards */
+/* Custom Webkit Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--cp-bg-main);
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ========================================================= */
+/* 🎴 MODERN ROUNDED CARDS & HOVER ELEVATION                */
+/* ========================================================= */
 .pulse-card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: var(--cp-bg-card);
+    border-radius: var(--cp-radius-lg);
+    border: 1px solid var(--cp-border-color);
+    box-shadow: var(--cp-shadow-sm);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 0.25s ease;
 }
+
 .pulse-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    transform: translateY(-4px);
+    box-shadow: var(--cp-shadow-hover);
+    border-color: #cbd5e1;
 }
 
-/* Modern Buttons */
-.btn-primary {
-    background-color: var(--gov-blue);
-    border-color: var(--gov-blue);
-    border-radius: 6px;
+/* ========================================================= */
+/* 🔘 BUTTON & INTERACTIVE COMPONENTS                        */
+/* ========================================================= */
+.btn {
     font-weight: 600;
-}
-.btn-primary:hover {
-    background-color: var(--gov-navy);
-    border-color: var(--gov-navy);
+    border-radius: var(--cp-radius-md);
+    padding: 0.625rem 1.25rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Custom Table Styling */
-.table thead {
-    background-color: #f8f9fa;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    color: #6c757d;
+.btn-primary {
+    background-color: var(--cp-primary);
+    border-color: var(--cp-primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--cp-primary-hover);
+    border-color: var(--cp-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(10, 49, 97, 0.25);
+}
+
+/* ========================================================= */
+/* 🔄 VISUAL WORKFLOW STEPPER COMPONENTS                      */
+/* ========================================================= */
+.stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 10px;
+    padding: 10px 0;
+}
+
+.stepper-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 8%;
+    right: 8%;
+    height: 3px;
+    background-color: var(--cp-border-color);
+    z-index: 1;
+}
+
+.stepper-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    z-index: 2;
+}
+
+.step-counter {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--cp-bg-card);
+    border: 2px solid var(--cp-border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--cp-text-muted);
+    margin-bottom: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepper-item.completed .step-counter {
+    background-color: var(--cp-success);
+    border-color: var(--cp-success);
+    color: #ffffff;
+}
+
+.stepper-item.active .step-counter {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+    animation: pulse-step 1.5s infinite;
+}
+
+@keyframes pulse-step {
+    0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(13, 110, 253, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+}
+
+.step-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cp-text-main);
+    text-align: center;
+}
+
+.step-desc {
+    font-size: 9px;
+    color: var(--cp-text-muted);
+    text-align: center;
+}
+
+/* Loading Spinner Overlay */
+.ai-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
+
+/* ========================================================= */
+/* 📱 RESPONSIVE BREAKPOINTS                                 */
+/* ========================================================= */
+@media (max-width: 768px) {
+    .stepper-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding-left: 15px;
+    }
+    
+    .stepper-wrapper::before {
+        top: 15px;
+        bottom: 15px;
+        left: 31px;
+        width: 3px;
+        height: auto;
+        right: auto;
+    }
+
+    .stepper-item {
+        flex-direction: row;
+        gap: 12px;
+        width: 100%;
+        align-items: center;
+    }
+
+    .step-name, .step-desc {
+        text-align: left;
+    }
 }

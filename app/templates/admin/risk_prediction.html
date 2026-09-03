@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark">
+            <i class="fa-solid fa-calculator text-danger me-2"></i> AI RISK PREDICTION & ML SANDBOX
+        </h2>
+        <p class="text-muted small mb-0">Interactive Predictive Modeling Simulator for Municipal Infrastructure Hazard Risk Assessment</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary fw-bold shadow-sm">
+            <i class="fa-solid fa-building-shield me-1"></i> Command Center
+        </a>
+        <a href="{{ url_for('admin.ds_dashboard') }}" class="btn btn-outline-purple fw-bold shadow-sm" style="color: #6f42c1; border-color: #6f42c1;">
+            <i class="fa-solid fa-flask me-1"></i> Data Science Lab
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="pulse-card p-4 h-100">
+            <h5 class="fw-bold text-dark mb-3">
+                <i class="fa-solid fa-sliders text-primary me-2"></i> Simulation Parameters
+            </h5>
+            <p class="text-muted small mb-4">Adjust environmental factors, historical incident density, and area criticality to run real-time risk predictions.</p>
+
+            <form method="POST" action="{{ url_for('admin.risk_prediction') }}">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-location-dot text-danger me-1"></i> Ward / Area Location</label>
+                    <input type="text" name="area" class="form-control" value="{{ params.area }}" required placeholder="e.g. Trimurti Chowk, Nashik">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-list-check text-primary me-1"></i> Infrastructure Issue Category</label>
+                    <select name="category" class="form-select">
+                        <option value="Pothole" {{ 'selected' if params.category == 'Pothole' else '' }}>Pothole / Road Damage</option>
+                        <option value="Water Leakage" {{ 'selected' if params.category == 'Water Leakage' else '' }}>Water Leakage / Pipe Burst</option>
+                        <option value="Garbage" {{ 'selected' if params.category == 'Garbage' else '' }}>Garbage / Illegal Dumping</option>
+                        <option value="Fallen Tree" {{ 'selected' if params.category == 'Fallen Tree' else '' }}>Fallen Tree / Blocked Path</option>
+                        <option value="Streetlight" {{ 'selected' if params.category == 'Streetlight' else '' }}>Broken Streetlight</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-car text-warning me-1"></i> Traffic Density Level</label>
+                    <select name="traffic_density" class="form-select">
+                        <option value="Low" {{ 'selected' if params.traffic_density == 'Low' else '' }}>Low Traffic (Suburban / Residential Lane)</option>
+                        <option value="Medium" {{ 'selected' if params.traffic_density == 'Medium' else '' }}>Medium Traffic (Secondary Commercial Street)</option>
+                        <option value="High" {{ 'selected' if params.traffic_density == 'High' else '' }}>High Traffic (Main Arterial Road / Chowk)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-clock-rotate-left text-info me-1"></i> Historical Reports in Ward (30 Days)</label>
+                    <input type="number" name="previous_reports" class="form-control" value="{{ params.previous_reports }}" min="0" max="100" required>
+                    <div class="form-text">Density multiplier based on recent complaint volume.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-cloud-showers-heavy text-primary me-1"></i> Monsoon / Weather Conditions</label>
+                    <select name="rainfall" class="form-select">
+                        <option value="Dry / Clear" {{ 'selected' if params.rainfall == 'Dry / Clear' else '' }}>Dry / Clear Weather</option>
+                        <option value="Moderate Rain" {{ 'selected' if params.rainfall == 'Moderate Rain' else '' }}>Moderate Rain showers</option>
+                        <option value="High" {{ 'selected' if params.rainfall == 'High' else '' }}>High / Torrential Monsoon Downpour</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-road text-secondary me-1"></i> Road Criticality Level</label>
+                    <select name="road_importance" class="form-select">
+                        <option value="Local Lane" {{ 'selected' if params.road_importance == 'Local Lane' else '' }}>Local / Service Lane</option>
+                        <option value="Arterial Road" {{ 'selected' if params.road_importance == 'Arterial Road' else '' }}>Arterial Road / School Zone</option>
+                        <option value="Major Highway / Junction" {{ 'selected' if params.road_importance == 'Major Highway / Junction' else '' }}>Major Highway / Hospital Junction</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 shadow">
+                    <i class="fa-solid fa-microchip me-1"></i> Run Machine Learning Prediction
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="pulse-card p-4 mb-4 border-top border-4 {{ result.border_class }}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted small fw-bold text-uppercase">AI Prediction Output</span>
+                <span class="badge {{ result.badge_class }} fs-6 px-3 py-2 shadow-sm">{{ result.badge }}</span>
+            </div>
+
+            <div class="row align-items-center g-3 mb-4">
+                <div class="col-md-5 border-end text-center">
+                    <span class="text-muted small fw-bold d-block mb-1">RISK PROBABILITY</span>
+                    <h1 class="display-3 fw-bold mb-0 text-dark">{{ result.prob }}%</h1>
+                    <small class="fw-semibold text-muted">{{ result.level }}</small>
+                </div>
+
+                <div class="col-md-7">
+                    <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Recommended Action</h6>
+                    <p class="small text-muted mb-0 bg-light p-3 rounded border border-start border-4 border-primary">
+                        {{ result.recommendation }}
+                    </p>
+                </div>
+            </div>
+
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-bar text-primary me-2"></i> Feature Importance Breakdown</h6>
+            <div class="d-flex flex-column gap-3 mb-2">
+                {% for feat in result.features %}
+                <div>
+                    <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span class="text-dark">{{ feat.name }} ({{ feat.val }})</span>
+                        <span class="text-primary">{{ feat.weight }}% Weight</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ feat.weight }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="pulse-card p-4 bg-light border border-info">
+            <h5 class="fw-bold text-info mb-2">
+                <i class="fa-solid fa-graduation-cap me-2"></i> Viva / Defense Model Architecture Guide
+            </h5>
+            <p class="small text-muted mb-3">
+                Use these talking points to explain the underlying Machine Learning logic during your academic presentation or viva evaluation:
+            </p>
+            <ul class="small text-muted mb-0 ps-3">
+                <li class="mb-2">
+                    <strong>Model Type:</strong> Multi-Factor Heuristic & Random Forest / Decision Tree Ensemble logic trained on municipal spatial incident data.
+                </li>
+                <li class="mb-2">
+                    <strong>Key Features Evaluated:</strong> Traffic volume density, historical 30-day incident clustering, weather/monsoon parameters, and proximity to critical zones (schools/hospitals).
+                </li>
+                <li class="mb-2">
+                    <strong>Output Score Range:</strong> Probability score normalized from 0% to 100%, mapped directly to four threat tiers: 🔴 Critical (&ge;80%), 🟠 Elevated (&ge;60%), 🟡 Moderate (&ge;40%), and 🟢 Low (&lt;40%).
+                </li>
+                <li>
+                    <strong>Practical Application:</strong> Enables city officials to transition from reactive complaint resolution to proactive, predictive maintenance before hazards cause severe accidents.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,23 +1,4 @@
-# Security & Environments
-.env
-venv/
-env/
-
-# Python Cache & Testing
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-
-# Database (Local state should not be shared)
-*.db
-*.sqlite3
-instance/
-
-# Uploads (Ignore the user images, but keep the directory)
-app/static/uploads/images/*
-!app/static/uploads/images/.gitkeep
-
-# AI Models (Too large for Git. In production, use AWS S3 or DVC)
-saved_models/
-cv_pipeline/runs/
+venv/ 
+__pycache__/ 
+*.pyc 
+.env 

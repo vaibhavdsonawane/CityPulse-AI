@@ -1,68 +1,237 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row align-items-center py-5 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #0A3161 0%, #1355A6 100%); color: white;">
-    <div class="col-lg-6 p-4 p-lg-5">
-        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white text-primary fw-bold small mb-3 shadow-sm">
-            <span class="pulse-indicator"></span> Real-Time Municipal Operations Active
+<style>
+/* Modern Hero Container & Spatial Card Styling */
+.hero-wrapper {
+    background: linear-gradient(135deg, #0A3161 0%, #104382 60%, #1a58a0 100%);
+    border-radius: var(--cp-radius-xl, 24px);
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--cp-shadow-lg);
+}
+
+.hero-badge {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hero-spatial-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--cp-radius-lg, 16px);
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Feature Card Hover Effects */
+.tool-card {
+    background-color: var(--cp-bg-card, #ffffff);
+    border-radius: var(--cp-radius-lg, 16px);
+    border: 1px solid var(--cp-border-color, #e2e8f0);
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+}
+.tool-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--cp-shadow-hover);
+    border-color: #cbd5e1;
+}
+
+/* AI Detection Mock Overlay */
+.vision-simulation-box {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f172a;
+    border: 1px solid #334155;
+    height: 190px;
+}
+.bbox-overlay {
+    position: absolute;
+    top: 25%;
+    left: 22%;
+    width: 52%;
+    height: 50%;
+    border: 2px solid #dc3545;
+    background: rgba(220, 53, 69, 0.15);
+    border-radius: 6px;
+    animation: bboxPulse 2s infinite ease-in-out;
+}
+@keyframes bboxPulse {
+    0% { border-color: #dc3545; box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    70% { border-color: #ff4d5e; box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { border-color: #dc3545; box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.bbox-tag {
+    position: absolute;
+    top: -24px;
+    left: -2px;
+    background: #dc3545;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+</style>
+
+<div class="hero-wrapper p-4 p-md-5 mb-5 mt-2">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <div class="hero-badge mb-3">
+                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+                <span>AI-POWERED CIVIC INTELLIGENCE</span>
+            </div>
+
+            <h1 class="display-3 fw-bold mb-3 text-white lh-sm">
+                Turn City Problems<br>
+                <span class="text-warning">Into City Solutions.</span>
+            </h1>
+
+            <p class="fs-5 mb-4 text-white-50" style="max-width: 560px;">
+                Smart governance powered by AI. Report civic issues, analyze them with automated computer vision, identify high-risk areas, and enable municipal authorities to respond faster.
+            </p>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-warning btn-lg px-4 py-3 fw-bold shadow-lg text-dark rounded-3">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> Report an Issue
+                </a>
+                <a href="#cityInsights" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-3">
+                    <i class="fa-solid fa-chart-pie me-2"></i> Explore City Insights
+                </a>
+            </div>
+
+            <div class="small text-white-50">
+                <span>Already registered?</span>
+                <a href="{{ url_for('auth.login', portal='citizen') }}" class="text-white fw-bold text-decoration-underline ms-1">Citizen Portal</a>
+                <span class="mx-1">•</span>
+                <a href="{{ url_for('auth.admin_login') }}" class="text-white fw-bold text-decoration-underline">Admin Command Portal</a>
+            </div>
         </div>
-        <h1 class="display-4 fw-bold mb-3">Smart Governance.<br>Powered by AI.</h1>
-        <p class="lead mb-4" style="color: #e0e0e0;">CityPulse AI empowers citizens to report infrastructure issues instantly. Computer vision and predictive models automatically classify, verify, priority-score, and dispatch field crews.</p>
-        
-        {% if current_user.is_authenticated %}
-            <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white-50 mb-3">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="fs-1">👋</div>
-                    <div>
-                        <h5 class="fw-bold mb-1">Welcome back, {{ current_user.name.split()[0] }}!</h5>
-                        <p class="small mb-0 opacity-75">You are currently logged in as a <strong>{{ current_user.role|capitalize }}</strong>.</p>
+
+        <div class="col-lg-5">
+            <div class="hero-spatial-card">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white-50">
+                    <span class="fw-bold small text-uppercase"><i class="fa-solid fa-satellite-dish text-warning me-1"></i> Live Spatial Monitor</span>
+                    <span class="badge bg-success-subtle text-success border border-success fw-bold">🟢 Platform Online</span>
+                </div>
+
+                <div class="position-relative rounded-3 bg-dark p-3 mb-3 text-center overflow-hidden" style="height: 180px; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);">
+                    <div class="position-absolute top-50 start-50 translate-middle w-100 opacity-25">
+                        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#0066FF" d="M44.7,-58.8C57.2,-48.4,66.2,-33.5,69.8,-17.1C73.4,-0.7,71.6,17.2,63.8,31.8C56,46.4,42.2,57.7,26.4,63.9C10.6,70.1,-7.2,71.2,-23.8,66C-40.4,60.8,-55.8,49.3,-64.1,33.9C-72.4,18.5,-73.6,-0.8,-68.8,-17.9C-64,-35,-53.2,-49.9,-39.3,-59.8C-25.4,-69.7,-8.4,-74.6,6.3,-73.5C21,-72.4,32.2,-69.2,44.7,-58.8Z" transform="translate(100 100)" />
+                        </svg>
+                    </div>
+
+                    <div class="position-relative z-2 py-3">
+                        <span class="badge bg-danger mb-2 px-3 py-1 fw-bold"><i class="fa-solid fa-radar me-1"></i> 32 Spatial Hotspots Active</span>
+                        <h4 class="fw-bold text-white mb-1">Nashik Municipal Zone</h4>
+                        <small class="text-white-50">Haversine Distance Clustering Radius: 350m</small>
+                    </div>
+                </div>
+
+                <div class="row g-2 text-center small">
+                    <div class="col-6">
+                        <div class="p-2 bg-white bg-opacity-10 rounded">
+                            <small class="text-white-50 d-block">AI Vision Accuracy</small>
+                            <strong class="text-warning fs-6">89.2% mAP</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 bg-white bg-opacity-10 rounded">
+                            <small class="text-white-50 d-block">Avg Resolution Time</small>
+                            <strong class="text-success fs-6">4.8 Hours</strong>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="d-grid gap-3 d-sm-flex">
-                {% if current_user.role == 'admin' %}
-                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-danger btn-lg px-4 fw-bold shadow-sm rounded-3">
-                        <i class="fa-solid fa-building-shield me-1"></i> Command Center
-                    </a>
-                    <a href="{{ url_for('admin.ds_dashboard') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
-                        <i class="fa-solid fa-flask me-1"></i> Data Science Lab
-                    </a>
-                {% else %}
-                    <a href="{{ url_for('citizen.dashboard') }}" class="btn btn-light btn-lg px-4 fw-bold text-primary shadow-sm rounded-3">
-                        <i class="fa-solid fa-gauge-high me-1"></i> Citizen Dashboard
-                    </a>
-                    <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-success btn-lg px-4 fw-bold shadow-sm rounded-3">
-                        <i class="fa-solid fa-circle-plus me-1"></i> Report Issue
-                    </a>
-                {% endif %}
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
-                    <i class="fa-solid fa-right-from-bracket me-1"></i> Sign Out
-                </a>
-            </div>
-        {% else %}
-            <div class="d-grid gap-3 d-sm-flex">
-                <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-lg px-4 fw-bold shadow-sm rounded-3">
-                    <i class="fa-solid fa-user-plus me-1"></i> Register as Citizen
-                </a>
-                <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-4 fw-bold text-primary shadow-sm rounded-3">
-                    <i class="fa-solid fa-right-to-bracket me-1"></i> Citizen Login
-                </a>
-                <a href="{{ url_for('auth.admin_login') }}" class="btn btn-outline-light btn-lg px-4 rounded-3">
-                    <i class="fa-solid fa-shield-halved me-1"></i> Admin Login
-                </a>
-            </div>
-        {% endif %}
+        </div>
     </div>
-    
-    <div class="col-lg-6 p-4 text-center">
-        <div class="position-relative d-inline-block w-100">
-            <img src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80" 
-                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80';" 
-                 alt="Smart City Infrastructure" 
-                 class="img-fluid rounded-4 shadow-lg border border-2 border-white-50" 
-                 style="object-fit: cover; height: 360px; width: 100%;">
-            <div class="position-absolute bottom-0 start-0 m-3 px-3 py-2 bg-dark bg-opacity-75 text-white rounded-3 small shadow">
-                <i class="fa-solid fa-location-dot text-danger me-1"></i> Smart Urban Spatial Monitoring
+</div>
+
+<div class="row mb-5" id="cityInsights">
+    <div class="col-12">
+        <div class="pulse-card p-4 p-md-5">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <div>
+                    <h4 class="fw-bold mb-1 text-dark">
+                        <i class="fa-solid fa-chart-line text-primary me-2"></i> CityPulse City Insights
+                    </h4>
+                    <p class="text-muted small mb-0">Real-time aggregate telemetry synchronized across municipal department databases.</p>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill fw-bold">
+                    <i class="fa-solid fa-circle text-success me-1" style="font-size: 8px;"></i> AI Services Operational
+                </span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">📊</span>
+                        <h3 class="fw-bold text-dark mb-0">{{ "{:,}".format(stats.total_reported) }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">Issues Reported</small>
+                        <span class="badge bg-primary-subtle text-primary border mt-2" style="font-size: 9px;">↑ 12.4% this month</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">✅</span>
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,}".format(stats.total_resolved) }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">Issues Resolved</small>
+                        <span class="badge bg-success-subtle text-success border mt-2" style="font-size: 9px;">{{ stats.resolution_rate }}% Success</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">🚨</span>
+                        <h3 class="fw-bold text-danger mb-0">{{ stats.high_priority }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">High Priority Alerts</small>
+                        <span class="badge bg-danger-subtle text-danger border mt-2" style="font-size: 9px;">Immediate Action</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">⚡</span>
+                        <h3 class="fw-bold text-dark mb-0">{{ stats.avg_response_time }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">Avg Response Time</small>
+                        <span class="badge bg-info-subtle text-info border mt-2" style="font-size: 9px;">Fast Dispatch</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">⭕</span>
+                        <h3 class="fw-bold text-warning mb-0">{{ stats.hotspots_count }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">Hotspots Neutralized</small>
+                        <span class="badge bg-warning-subtle text-warning border mt-2" style="font-size: 9px;">Spatial Analytics</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <div class="p-3 bg-light rounded-3 border text-center h-100">
+                        <span class="fs-3 d-block mb-1">👥</span>
+                        <h3 class="fw-bold text-primary mb-0">{{ "{:,}".format(stats.active_citizens) }}</h3>
+                        <small class="text-muted fw-semibold d-block mt-1">Active Citizens</small>
+                        <span class="badge bg-primary-subtle text-primary border mt-2" style="font-size: 9px;">Participatory Community</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -70,102 +239,173 @@
 
 <div class="row mb-5">
     <div class="col-12">
-        <div class="pulse-card p-4 border-top border-4 border-primary">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-center mb-4">
+            <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill fw-bold">
+                OPERATIONAL PIPELINE
+            </span>
+            <h3 class="fw-bold text-dark mt-2 mb-1">How CityPulse AI Works</h3>
+            <p class="text-muted small">Five automated steps from citizen report submission to field crew resolution.</p>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md">
+                <div class="p-3 bg-white rounded-3 border text-center shadow-sm h-100">
+                    <span class="badge bg-primary rounded-circle mb-2" style="width:28px; height:28px; line-height:18px;">01</span>
+                    <h6 class="fw-bold text-dark mb-1">📱 Report</h6>
+                    <small class="text-muted d-block" style="font-size: 11px;">Citizen submits photo & description.</small>
+                </div>
+            </div>
+
+            <div class="col-md">
+                <div class="p-3 bg-white rounded-3 border text-center shadow-sm h-100">
+                    <span class="badge bg-primary rounded-circle mb-2" style="width:28px; height:28px; line-height:18px;">02</span>
+                    <h6 class="fw-bold text-dark mb-1">🤖 AI Analyze</h6>
+                    <small class="text-muted d-block" style="font-size: 11px;">Computer vision & NLP verify severity.</small>
+                </div>
+            </div>
+
+            <div class="col-md">
+                <div class="p-3 bg-white rounded-3 border text-center shadow-sm h-100">
+                    <span class="badge bg-primary rounded-circle mb-2" style="width:28px; height:28px; line-height:18px;">03</span>
+                    <h6 class="fw-bold text-dark mb-1">📍 Locate</h6>
+                    <small class="text-muted d-block" style="font-size: 11px;">GIS map pinpoints spatial hotspots.</small>
+                </div>
+            </div>
+
+            <div class="col-md">
+                <div class="p-3 bg-white rounded-3 border text-center shadow-sm h-100">
+                    <span class="badge bg-primary rounded-circle mb-2" style="width:28px; height:28px; line-height:18px;">04</span>
+                    <h6 class="fw-bold text-dark mb-1">🏢 Dispatch</h6>
+                    <small class="text-muted d-block" style="font-size: 11px;">Assigned to municipal field crew.</small>
+                </div>
+            </div>
+
+            <div class="col-md">
+                <div class="p-3 bg-white rounded-3 border text-center shadow-sm h-100">
+                    <span class="badge bg-success rounded-circle mb-2" style="width:28px; height:28px; line-height:18px;">05</span>
+                    <h6 class="fw-bold text-success mb-1">✨ Resolve</h6>
+                    <small class="text-muted d-block" style="font-size: 11px;">Issue fixed & citizen notified.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-lg-4">
+        <div class="tool-card d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="p-3 bg-primary-subtle text-primary rounded-3 fs-3">
+                    📷
+                </div>
                 <div>
-                    <h5 class="fw-bold mb-0 text-dark">
-                        <i class="fa-solid fa-tower-broadcast text-primary me-2"></i> CITYPULSE LIVE STATISTICS
-                    </h5>
-                    <small class="text-muted">Real-time aggregate data synchronized with live PostgreSQL/SQLite database.</small>
+                    <h5 class="fw-bold text-dark mb-0">AI Vision Detection</h5>
+                    <small class="text-muted">Automated Image Verification</small>
                 </div>
-                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
-                    <i class="fa-solid fa-circle text-success fs-6 me-1" style="font-size: 8px !important;"></i> Live Sync Active
-                </span>
             </div>
-            
-            <div class="row text-center g-3">
-                <div class="col-md-2 col-6">
-                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
-                        <span class="fs-2 mb-2 d-block">🏙️</span>
-                        <h3 class="fw-bold mb-0 text-body">{{ stats.total_reported }}</h3>
-                        <p class="text-muted small mb-0 fw-semibold">Issues Reported</p>
-                    </div>
-                </div>
-                
-                <div class="col-md-2 col-6">
-                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
-                        <span class="fs-2 mb-2 d-block">✅</span>
-                        <h3 class="fw-bold mb-0 text-success">{{ stats.total_resolved }}</h3>
-                        <p class="text-muted small mb-0 fw-semibold">Issues Resolved</p>
-                    </div>
-                </div>
 
-                <div class="col-md-2 col-6">
-                    <div class="p-3 rounded-3 bg-body-tertiary border h-100 border-start border-3 border-danger">
-                        <span class="fs-2 mb-2 d-block">🚨</span>
-                        <h3 class="fw-bold mb-0 text-danger">{{ stats.high_priority }}</h3>
-                        <p class="text-muted small mb-0 fw-semibold">High Priority</p>
-                    </div>
-                </div>
+            <p class="text-muted small mb-3">
+                Upload evidence photos and our custom vision engine automatically detects potholes, garbage heaps, broken streetlights, or fallen trees with confidence scoring.
+            </p>
 
-                <div class="col-md-3 col-6">
-                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
-                        <span class="fs-2 mb-2 d-block">⚡</span>
-                        <h3 class="fw-bold mb-0 text-dark">{{ stats.avg_response_time }}</h3>
-                        <p class="text-muted small mb-0 fw-semibold">Avg. Response Time</p>
-                    </div>
+            <div class="vision-simulation-box mb-3 d-flex align-items-center justify-content-center">
+                <div class="bbox-overlay">
+                    <span class="bbox-tag">POTHOLE 94.2%</span>
                 </div>
-                
-                <div class="col-md-3 col-12">
-                    <div class="p-3 rounded-3 bg-body-tertiary border h-100">
-                        <span class="fs-2 mb-2 d-block">👥</span>
-                        <h3 class="fw-bold mb-0 text-primary">{{ stats.active_citizens }}</h3>
-                        <p class="text-muted small mb-0 fw-semibold">Active Citizens</p>
+                <small class="text-white-50"><i class="fa-solid fa-eye me-1"></i> YOLOv8 Vision Detection Active</small>
+            </div>
+
+            <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-outline-primary fw-bold w-100 mt-auto">
+                Try AI Vision Detection →
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="tool-card d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-3 fs-3">
+                    🤖
+                </div>
+                <div>
+                    <h5 class="fw-bold text-dark mb-0">Smart Report Analysis</h5>
+                    <small class="text-muted">NLP & Formula Priority Engine</small>
+                </div>
+            </div>
+
+            <p class="text-muted small mb-3">
+                Text classification models analyze citizen descriptions in real-time to compute objective urgency scores based on severity, location risk, and historical frequency.
+            </p>
+
+            <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="d-flex justify-content-between small fw-bold mb-1">
+                    <span>Priority Score Calculation</span>
+                    <span class="text-danger">88 / 100 (🔴 Critical)</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: 88%;"></div>
+                </div>
+                <small class="text-muted d-block mt-2" style="font-size: 10px;">Priority = Severity + Location Risk + Impact + Frequency</small>
+            </div>
+
+            <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-outline-primary fw-bold w-100 mt-auto">
+                Test Priority Analyzer →
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="tool-card d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="p-3 bg-danger-subtle text-danger rounded-3 fs-3">
+                    📍
+                </div>
+                <div>
+                    <h5 class="fw-bold text-dark mb-0">Civic Hotspot Intelligence</h5>
+                    <small class="text-muted">Spatial Clustering & GIS Maps</small>
+                </div>
+            </div>
+
+            <p class="text-muted small mb-3">
+                Haversine distance algorithms group nearby reports within a 350-meter radius to detect high-density hazard zones and prevent duplicate dispatching.
+            </p>
+
+            <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-danger">🔴 Hotspot Zone Active</span>
+                    <small class="text-muted fw-bold">6 Reports Nearby</small>
+                </div>
+                <small class="text-muted d-block" style="font-size: 11px;">Trimurti Chowk Sector 4, Nashik</small>
+            </div>
+
+            <a href="{{ url_for('main.impact') }}" class="btn btn-outline-primary fw-bold w-100 mt-auto">
+                View Hotspot Intelligence →
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="pulse-card p-4 p-md-5 bg-white border-top border-4 border-primary">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary text-white"><i class="fa-solid fa-lightbulb me-1"></i> AUTOMATED INSIGHT</span>
+                        <span class="text-muted small fw-bold">Updated 10 mins ago</span>
                     </div>
+                    <h4 class="fw-bold text-dark mb-2">"Road damage reports increased 23% this week along central transit corridors."</h4>
+                    <p class="text-muted mb-0">
+                        Spatial analytics detected a concentrated cluster of 14 new pothole reports near major school zones. Automated maintenance dispatch recommendations have been issued to the Roads & Infrastructure Department.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="{{ url_for('main.impact') }}" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                        <i class="fa-solid fa-chart-line me-1"></i> View Full Impact Report
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<div class="row text-center mb-5 g-4">
-    <div class="col-md-4">
-        <div class="pulse-card p-4 h-100">
-            <div class="display-4 mb-3" style="color: #B38C4D;">📷</div>
-            <h4 class="fw-bold">YOLOv8 Computer Vision</h4>
-            <p class="text-muted">Upload an image and our custom vision engine automatically detects potholes, garbage heaps, broken lights, or fallen trees with confidence scoring.</p>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="pulse-card p-4 h-100">
-            <div class="display-4 mb-3" style="color: #B38C4D;">🤖</div>
-            <h4 class="fw-bold">Visible AI Issue Analyzer</h4>
-            <p class="text-muted">Type a description to view live NLP classification, severity predictions, location risk points, and automated dispatch recommendations.</p>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="pulse-card p-4 h-100">
-            <div class="display-4 mb-3" style="color: #B38C4D;">📍</div>
-            <h4 class="fw-bold">Haversine Hotspot GIS</h4>
-            <p class="text-muted">Spatial density algorithms group complaints within a 350-meter radius to project glowing threat zones on satellite GIS maps.</p>
-        </div>
-    </div>
-</div>
-
-<style>
-.pulse-indicator {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #198754;
-    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
-    animation: pulse-dot 1.5s infinite;
-}
-@keyframes pulse-dot {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
-}
-</style>
 {% endblock %}

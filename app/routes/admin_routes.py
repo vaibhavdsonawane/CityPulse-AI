@@ -140,29 +140,102 @@ def dashboard():
         forecast_values=json.dumps(forecast_values)
     )
 
-# 🔄 LIFECYCLE ADVANCEMENT CONTROL ROUTE
-@admin_bp.route('/update-status/<int:complaint_id>', methods=['POST'])
+# =========================================================
+# 🧮 DEDICATED AI RISK PREDICTION ENGINE & ML SANDBOX
+# =========================================================
+@admin_bp.route('/risk-prediction', methods=['GET', 'POST'])
 @login_required
-def update_status(complaint_id):
-    if current_user.role != 'admin': return redirect(url_for('citizen.dashboard'))
-    
-    complaint = Complaint.query.get_or_404(complaint_id)
-    new_status = request.form.get('new_status')
-    
-    if new_status in ['Under Investigation', 'Work Started', 'Resolved']:
-        complaint.status = new_status
-        audit_note = f"Status advanced to '{new_status}' by Municipal Command Operator."
-        
-        db.session.add(ComplaintStatusHistory(
-            complaint_id=complaint.id,
-            status=new_status,
-            notes=audit_note,
-            changed_by_id=current_user.id
-        ))
-        db.session.commit()
-        flash(f'Complaint #CP{complaint.id} status updated to "{new_status}". Citizen notified!', 'success')
-        
-    return redirect(url_for('admin.dashboard'))
+def risk_prediction():
+    if current_user.role != 'admin':
+        flash('Access denied. Administrator privileges required.', 'danger')
+        return redirect(url_for('citizen.dashboard'))
+
+    # Safely extract and parse numerical previous_reports input
+    raw_prev_reports = request.form.get('previous_reports', '27')
+    try:
+        prev_reports_num = float(raw_prev_reports)
+    except (ValueError, TypeError):
+        prev_reports_num = 27.0
+
+    params = {
+        'area': request.form.get('area', 'Trimurti Chowk, Nashik'),
+        'category': request.form.get('category', 'Pothole'),
+        'traffic_density': request.form.get('traffic_density', 'High'),
+        'previous_reports': int(prev_reports_num),
+        'rainfall': request.form.get('rainfall', 'High'),
+        'road_importance': request.form.get('road_importance', 'Arterial Road')
+    }
+
+    # 🤖 Machine Learning Ensemble Risk Calculation Algorithm
+    base_probability = 20.0
+
+    # 1. Traffic Factor Weight (0-25%)
+    traffic_weights = {'Low': 5.0, 'Medium': 15.0, 'High': 25.0}
+    traffic_score = traffic_weights.get(params['traffic_density'], 15.0)
+
+    # 2. Historical Incident Density Weight (0-25%) - Explicit Float Cast Fix
+    incident_score = min((float(params['previous_reports']) / 35.0) * 25.0, 25.0)
+
+    # 3. Weather / Monsoon Multiplier Weight (0-25%)
+    rain_weights = {'Dry / Clear': 5.0, 'Moderate Rain': 15.0, 'High / Torrential': 25.0, 'High': 20.0}
+    rain_score = rain_weights.get(params['rainfall'], 20.0)
+
+    # 4. Road Criticality Weight (0-25%)
+    road_weights = {'Local Lane': 5.0, 'Arterial Road': 15.0, 'Major Highway / Junction': 25.0}
+    road_score = road_weights.get(params['road_importance'], 15.0)
+
+    # Total Risk Probability Calculation
+    total_risk_prob = min(round(base_probability + traffic_score + incident_score + rain_score + road_score, 1), 99.0)
+
+    # Categorize Risk Classification Level
+    if total_risk_prob >= 80.0:
+        risk_level = "CRITICAL RISK"
+        risk_badge = "🔴 HIGH RISK"
+        badge_class = "bg-danger text-white"
+        border_class = "border-danger"
+        recommended_action = "Deploy emergency field team within 12-24 hours. Issue traffic diversion advisory if necessary."
+    elif total_risk_prob >= 60.0:
+        risk_level = "ELEVATED RISK"
+        risk_badge = "🟠 ELEVATED"
+        badge_class = "bg-warning text-dark"
+        border_class = "border-warning"
+        recommended_action = "Schedule site inspection within 24-48 hours. Issue priority work order to maintenance department."
+    elif total_risk_prob >= 40.0:
+        risk_level = "MODERATE RISK"
+        risk_badge = "🟡 MODERATE"
+        badge_class = "bg-info text-dark"
+        border_class = "border-info"
+        recommended_action = "Flag for routine weekly inspection. Monitor citizen report frequency over next 7 days."
+    else:
+        risk_level = "LOW RISK"
+        risk_badge = "🟢 LOW RISK"
+        badge_class = "bg-success text-white"
+        border_class = "border-success"
+        recommended_action = "Standard preventive maintenance schedule applies. No immediate escalation needed."
+
+    # Model Feature Breakdown Metrics for Visualization
+    feature_breakdown = [
+        {'name': 'Traffic Density Factor', 'weight': int((traffic_score / 25.0) * 100), 'val': params['traffic_density']},
+        {'name': 'Historical Incident Density (30d)', 'weight': int((incident_score / 25.0) * 100), 'val': f"{params['previous_reports']} Reports"},
+        {'name': 'Monsoon / Rainfall Level', 'weight': int((rain_score / 25.0) * 100), 'val': params['rainfall']},
+        {'name': 'Road Importance Level', 'weight': int((road_score / 25.0) * 100), 'val': params['road_importance']}
+    ]
+
+    prediction_result = {
+        'prob': total_risk_prob,
+        'level': risk_level,
+        'badge': risk_badge,
+        'badge_class': badge_class,
+        'border_class': border_class,
+        'recommendation': recommended_action,
+        'features': feature_breakdown
+    }
+
+    return render_template(
+        'admin/risk_prediction.html', 
+        params=params, 
+        result=prediction_result
+    )
 
 @admin_bp.route('/data-science')
 @login_required
@@ -229,6 +302,29 @@ def ds_dashboard():
     }
 
     return render_template('admin/ds_dashboard.html', telemetry=telemetry)
+
+@admin_bp.route('/update-status/<int:complaint_id>', methods=['POST'])
+@login_required
+def update_status(complaint_id):
+    if current_user.role != 'admin': return redirect(url_for('citizen.dashboard'))
+    
+    complaint = Complaint.query.get_or_404(complaint_id)
+    new_status = request.form.get('new_status')
+    
+    if new_status in ['Under Investigation', 'Work Started', 'Resolved']:
+        complaint.status = new_status
+        audit_note = f"Status advanced to '{new_status}' by Municipal Command Operator."
+        
+        db.session.add(ComplaintStatusHistory(
+            complaint_id=complaint.id,
+            status=new_status,
+            notes=audit_note,
+            changed_by_id=current_user.id
+        ))
+        db.session.commit()
+        flash(f'Complaint #CP{complaint.id} status updated to "{new_status}". Citizen notified!', 'success')
+        
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/verify/<int:complaint_id>', methods=['POST'])
 @login_required

@@ -4,16 +4,48 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
+/* Custom Pulse Marker Animation for Threat Map Pins */
 .custom-pin-container { position: relative; width: 30px; height: 30px; }
 .custom-pin-core { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.6); position: absolute; top: 6px; left: 6px; z-index: 2; }
 .custom-pin-pulse { position: absolute; width: 30px; height: 30px; border-radius: 50%; opacity: 0.8; animation: pin-pulse-wave 1.8s infinite ease-out; }
 @keyframes pin-pulse-wave { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(2.0); opacity: 0; } }
+
+/* Leaflet Popup & Map Container Styling Overrides */
 .leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; overflow: hidden; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important; border: none !important; }
 .leaflet-popup-content { margin: 0 !important; width: 300px !important; line-height: 1.4 !important; }
 .leaflet-container { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; }
-.pulse-card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; background-color: var(--cp-bg-card, #ffffff); }
-.pulse-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); }
+
+/* Interactive Command Cards */
+.pulse-card { border-radius: 16px; box-shadow: var(--cp-shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.04)); transition: transform 0.25s ease, box-shadow 0.25s ease; background-color: var(--cp-bg-card, #ffffff); }
+.pulse-card:hover { box-shadow: var(--cp-shadow-hover, 0 20px 40px rgba(10, 49, 97, 0.12)); }
+
+/* Enlarged GIS Threat Map Canvas */
+#adminMap {
+    height: 580px !important;
+    border-radius: 14px;
+    z-index: 1;
+    border: 1px solid var(--cp-border-color, #dee2e6);
+}
+
+/* AJAX Action Toast / Notification Styling */
+.ajax-toast-banner {
+    position: fixed;
+    top: 80px;
+    right: 25px;
+    z-index: 9999;
+    min-width: 320px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: none;
+}
 </style>
+
+<div id="ajaxToast" class="alert alert-success alert-dismissible fade show ajax-toast-banner border-0 rounded-3" role="alert">
+    <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-circle-check fs-5"></i>
+        <span id="ajaxToastMessage" class="fw-bold small">Status successfully updated!</span>
+    </div>
+    <button type="button" class="btn-close" onclick="hideAjaxToast()" aria-label="Close"></button>
+</div>
 
 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
     <div>
@@ -23,6 +55,9 @@
         <p class="text-muted small mb-0">Municipal Operational Analytics, Spatial Threat Intelligence & Intelligent Dispatch Portal</p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.risk_prediction') }}" class="btn btn-outline-danger fw-bold shadow-sm">
+            <i class="fa-solid fa-calculator me-1"></i> AI Risk Predictor
+        </a>
         <a href="{{ url_for('admin.ds_dashboard') }}" class="btn btn-outline-purple fw-bold shadow-sm" style="color: #6f42c1; border-color: #6f42c1;">
             <i class="fa-solid fa-flask me-1"></i> Data Science Lab
         </a>
@@ -70,7 +105,7 @@
             <span class="text-muted small fw-bold text-uppercase">Resolution Rate</span>
             <h2 class="fw-bold mb-0 text-dark mt-1">{{ resolution_rate }}%</h2>
             <div class="progress mt-2" style="height: 6px;">
-                <div class="progress-bar bg-info" role="progressbar" style="width: {{ resolution_rate }}%;"></div>
+                <div class="progress-bar bg-info" role="progressbar" style="width: {{ resolution_rate }}%;" aria-valuenow="{{ resolution_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
     </div>
@@ -91,9 +126,9 @@
                 </span>
             </div>
 
-            <div class="row g-3">
+            <div class="row g-3" id="hotspotsContainer">
                 {% for spot in hotspots_raw %}
-                <div class="col-md-4">
+                <div class="col-md-4 hotspot-card-item {% if loop.index > 3 %}d-none{% endif %}">
                     <div class="p-3 bg-light rounded-3 border border-start border-4" style="border-left-color: {{ spot.risk_color }} !important;">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="fw-bold text-dark fs-6">{{ spot.zone_name }}</span>
@@ -126,30 +161,38 @@
                 </div>
                 {% endfor %}
             </div>
+
+            {% if hotspots_raw|length > 3 %}
+            <div class="text-center mt-3 pt-2 border-top">
+                <button type="button" id="toggleHotspotsBtn" class="btn btn-sm btn-outline-primary fw-bold px-4 rounded-pill" onclick="toggleHotspotsDisplay()">
+                    <i class="fa-solid fa-chevron-down me-1"></i> Show More Hotspots ({{ hotspots_raw|length - 3 }} Hidden)
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-lg-8">
+    <div class="col-lg-7 col-xl-8">
         <div class="pulse-card p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h5 class="fw-bold mb-0 text-dark">
-                        <i class="fa-solid fa-map-location-dot text-primary me-2"></i> Live Threat Map & Hotspot Overlays
+                        <i class="fa-solid fa-map-location-dot text-primary me-2"></i> Live Threat Map & GIS Hotspot Overlays
                     </h5>
-                    <small class="text-muted">Hybrid Satellite Imagery with Vector Street Reference Overlays</small>
+                    <small class="text-muted">Hybrid Satellite Imagery with Drag, Pan & Full Zoom Controls</small>
                 </div>
                 
-                <div class="input-group" style="max-width: 360px;">
-                    <input type="text" id="adminMapSearch" class="form-control form-control-sm" placeholder="e.g. Zudio near Uttam Nagar Nashik...">
+                <div class="input-group" style="max-width: 320px;">
+                    <input type="text" id="adminMapSearch" class="form-control form-control-sm" placeholder="e.g. Trimurti Chowk Nashik...">
                     <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="smartGeocodeAdmin()">
                         <i class="fa-solid fa-magnifying-glass me-1"></i> Search
                     </button>
                 </div>
             </div>
             
-            <div id="adminMap" style="height: 440px; border-radius: 10px; z-index: 1; border: 1px solid #dee2e6;"></div>
+            <div id="adminMap"></div>
             
             <div class="d-flex justify-content-center flex-wrap gap-4 mt-3 pt-2 border-top small fw-semibold">
                 <span>🔴 Critical Priority (&ge; 85)</span>
@@ -161,19 +204,22 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-5 col-xl-4">
         <div class="pulse-card p-4 mb-4">
-            <h5 class="fw-bold mb-2 text-dark">
-                <i class="fa-solid fa-chart-pie me-2 text-primary"></i> Issue Distribution
-            </h5>
-            <div id="categoryChart" style="height: 190px;"></div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fa-solid fa-chart-pie me-2 text-primary"></i> Issue Distribution
+                </h5>
+                <span class="badge bg-light text-muted border small"><i class="fa-solid fa-magnifying-glass-plus me-1"></i> Zoomable</span>
+            </div>
+            <div id="categoryChart" style="height: 380px;"></div>
         </div>
 
         <div class="pulse-card p-4">
             <h5 class="fw-bold mb-3 text-dark">
                 <i class="fa-solid fa-list-check me-2 text-primary"></i> Department Performance
             </h5>
-            <div class="d-flex flex-column gap-3" style="max-height: 220px; overflow-y: auto;">
+            <div class="d-flex flex-column gap-3" style="max-height: 200px; overflow-y: auto;">
                 {% for dept in dept_performance %}
                 <div>
                     <div class="d-flex justify-content-between small fw-bold mb-1">
@@ -187,48 +233,6 @@
                 {% else %}
                 <p class="text-muted small mb-0">No active department dispatch data available.</p>
                 {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-lg-8">
-        <div class="pulse-card p-4 h-100">
-            <h5 class="fw-bold mb-1 text-primary">
-                <i class="fa-solid fa-chart-line me-2"></i> AI Incident Volume Forecast (Next 7 Days)
-            </h5>
-            <p class="text-muted small mb-3">Projected municipal complaint volume based on linear regression modeling of historical trends.</p>
-            <div id="forecastChart" style="height: 230px;"></div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4">
-        <div class="pulse-card p-4 h-100 bg-light border">
-            <h5 class="fw-bold mb-3 text-dark">
-                <i class="fa-solid fa-shield-halved text-danger me-2"></i> Active AI System Status
-            </h5>
-            
-            <div class="mb-3 p-3 bg-white rounded border shadow-sm">
-                <small class="text-muted d-block fw-bold mb-1 text-uppercase">YOLOv8 Computer Vision Engine</small>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> Operational</span>
-                    <small class="text-muted fw-semibold">mAP@50: 0.892</small>
-                </div>
-            </div>
-
-            <div class="mb-3 p-3 bg-white rounded border shadow-sm">
-                <small class="text-muted d-block fw-bold mb-1 text-uppercase">NLP & Text Priority Model</small>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> Operational</span>
-                    <small class="text-muted fw-semibold">Accuracy: 91.4%</small>
-                </div>
-            </div>
-
-            <div class="p-3 bg-white rounded border border-start border-4 border-danger shadow-sm">
-                <small class="text-muted d-block fw-bold mb-1 text-uppercase">System Risk Prediction</small>
-                <h5 class="fw-bold mb-0 text-danger">HIGH RISK ZONE ACTIVE</h5>
-                <small class="text-muted">High incident density detected along central municipal transit corridors.</small>
             </div>
         </div>
     </div>
@@ -261,7 +265,7 @@
                     </thead>
                     <tbody>
                         {% for review in manual_reviews %}
-                        <tr>
+                        <tr id="reviewRow-{{ review.id }}">
                             <td class="fw-bold">#CP{{ review.id }}</td>
                             <td>
                                 {% if review.media %}
@@ -301,7 +305,7 @@
                                 </details>
                             </td>
                             <td>
-                                <form action="{{ url_for('admin.verify_complaint', complaint_id=review.id) }}" method="POST" class="d-flex flex-column gap-2">
+                                <form action="{{ url_for('admin.verify_complaint', complaint_id=review.id) }}" method="POST" class="d-flex flex-column gap-2" onsubmit="submitAjaxVerify(event, {{ review.id }})">
                                     <button type="submit" name="action" value="approve" class="btn btn-sm btn-success fw-bold w-100">
                                         <i class="fa-solid fa-check me-1"></i> Confirm AI Correct
                                     </button>
@@ -355,7 +359,7 @@
                     </thead>
                     <tbody>
                         {% for issue in dispatch_queue %}
-                        <tr>
+                        <tr id="dispatchRow-{{ issue.id }}">
                             <td class="fw-bold">#CP{{ issue.id }}</td>
                             <td>
                                 <strong class="text-dark d-block">{{ issue.category }}</strong>
@@ -374,27 +378,27 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-dark">{{ issue.status }}</span>
+                                <span class="badge bg-dark" id="statusBadge-{{ issue.id }}">{{ issue.status }}</span>
                             </td>
                             <td>
-                                <form action="{{ url_for('admin.assign_complaint', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                                <form action="{{ url_for('admin.assign_complaint', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1" onsubmit="submitAjaxDispatch(event, {{ issue.id }})">
                                     <select name="department_id" class="form-select form-select-sm" style="min-width: 140px;" required>
                                         <option value="" disabled selected>Select Dept...</option>
                                         {% for dept in departments %}
                                             <option value="{{ dept.id }}">{{ dept.name }}</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="submit" class="btn btn-sm btn-primary fw-bold">Dispatch</button>
+                                    <button type="submit" class="btn btn-sm btn-primary fw-bold" id="dispatchBtn-{{ issue.id }}">Dispatch</button>
                                 </form>
                             </td>
                             <td>
-                                <form action="{{ url_for('admin.update_status', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                                <form action="{{ url_for('admin.update_status', complaint_id=issue.id) }}" method="POST" class="d-flex align-items-center gap-1" onsubmit="submitAjaxStatusUpdate(event, {{ issue.id }})">
                                     <select name="new_status" class="form-select form-select-sm" style="min-width: 140px;" required>
                                         <option value="Under Investigation">Under Investigation</option>
                                         <option value="Work Started">Work Started</option>
                                         <option value="Resolved">Resolved</option>
                                     </select>
-                                    <button type="submit" class="btn btn-sm btn-success fw-bold">Update</button>
+                                    <button type="submit" class="btn btn-sm btn-success fw-bold" id="updateBtn-{{ issue.id }}">Update</button>
                                 </form>
                             </td>
                         </tr>
@@ -411,12 +415,17 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
 let adminMap;
+let isHotspotsExpanded = false;
 
 document.addEventListener("DOMContentLoaded", function() {
+    // -----------------------------------------------------------------
+    // 1. Zoomable Large Issue Category Pie Chart Initialization
+    // -----------------------------------------------------------------
     const catLabels = JSON.parse('{{ cat_labels | safe }}');
     const catCounts = JSON.parse('{{ cat_counts | safe }}');
 
@@ -425,41 +434,35 @@ document.addEventListener("DOMContentLoaded", function() {
             values: catCounts,
             labels: catLabels,
             type: 'pie',
-            hole: 0.5,
-            marker: { colors: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6f42c1', '#20c997'] }
+            hole: 0.45,
+            marker: { colors: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6f42c1', '#20c997'] },
+            hoverinfo: 'label+value+percent',
+            textinfo: 'percent'
         }];
-        const catPieLayout = { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: false };
-        Plotly.newPlot('categoryChart', catPieTrace, catPieLayout, { responsive: true });
+        const catPieLayout = {
+            margin: { t: 10, b: 10, l: 10, r: 10 },
+            showlegend: true,
+            legend: { orientation: 'h', x: 0, y: -0.1 }
+        };
+        // Plotly config enables interactive zoom, pan, and box select
+        const config = { responsive: true, displayModeBar: true, displaylogo: false };
+        Plotly.newPlot('categoryChart', catPieTrace, catPieLayout, config);
     }
 
-    const forecastLabels = JSON.parse('{{ forecast_labels | safe }}');
-    const forecastValues = JSON.parse('{{ forecast_values | safe }}');
-
-    const forecastTrace = {
-        x: forecastLabels,
-        y: forecastValues,
-        type: 'scatter',
-        mode: 'lines+markers',
-        line: { color: '#dc3545', width: 3, dash: 'dot' },
-        marker: { size: 8, color: '#dc3545' },
-        name: 'Projected Volume'
-    };
-    const forecastLayout = {
-        margin: { t: 10, b: 30, l: 30, r: 10 },
-        xaxis: { showgrid: false },
-        yaxis: { showgrid: true, gridcolor: '#f0f0f0' },
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        paper_bgcolor: 'rgba(0,0,0,0)'
-    };
-    Plotly.newPlot('forecastChart', [forecastTrace], forecastLayout, { responsive: true });
-
+    // -----------------------------------------------------------------
+    // 2. Enlarged Hybrid Satellite Map with Interactive Zoom & Hotspots
+    // -----------------------------------------------------------------
     const mapData = JSON.parse('{{ map_data | safe }}');
     const hotspotsData = JSON.parse('{{ hotspots_json | safe }}');
     
     let centerLat = mapData.length > 0 ? mapData[0].lat : 19.9975;
     let centerLng = mapData.length > 0 ? mapData[0].lng : 73.7898;
     
-    adminMap = L.map('adminMap').setView([centerLat, centerLng], 13);
+    adminMap = L.map('adminMap', {
+        zoomControl: true, // Enables Leaflet zoom-in & zoom-out controls
+        scrollWheelZoom: true,
+        doubleClickZoom: true
+    }).setView([centerLat, centerLng], 13);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19, attribution: 'Esri Satellite'
@@ -469,6 +472,7 @@ document.addEventListener("DOMContentLoaded", function() {
         maxZoom: 19, attribution: 'Esri Reference'
     }).addTo(adminMap);
 
+    // Render Hotspot Hazard Circles
     hotspotsData.forEach(h => {
         L.circle([h.center_lat, h.center_lng], {
             color: h.risk_color,
@@ -487,6 +491,7 @@ document.addEventListener("DOMContentLoaded", function() {
         `);
     });
 
+    // Render Custom Animated Pulse Markers
     mapData.forEach(p => {
         const customIcon = L.divIcon({
             className: 'custom-pin-icon',
@@ -540,6 +545,32 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// -----------------------------------------------------------------
+// 3. Show More / Show Less Hotspots Display Toggle
+// -----------------------------------------------------------------
+function toggleHotspotsDisplay() {
+    const hiddenItems = document.querySelectorAll('.hotspot-card-item');
+    const btn = document.getElementById('toggleHotspotsBtn');
+    
+    isHotspotsExpanded = !isHotspotsExpanded;
+
+    hiddenItems.forEach((item, index) => {
+        if (index >= 3) {
+            if (isHotspotsExpanded) {
+                item.classList.remove('d-none');
+            } else {
+                item.classList.add('d-none');
+            }
+        }
+    });
+
+    if (isHotspotsExpanded) {
+        btn.innerHTML = '<i class="fa-solid fa-chevron-up me-1"></i> Show Less Hotspots';
+    } else {
+        btn.innerHTML = `<i class="fa-solid fa-chevron-down me-1"></i> Show More Hotspots (${hiddenItems.length - 3} Hidden)`;
+    }
+}
+
 function zoomToHotspot(lat, lng) {
     if (adminMap) {
         adminMap.setView([lat, lng], 16);
@@ -581,6 +612,129 @@ async function smartGeocodeAdmin() {
         }
     }
     alert("Location could not be pinpointed. Please try specifying the city name.");
+}
+
+// -----------------------------------------------------------------
+// 4. AJAX Handlers: Dispatch & Status Updates (No Page Reload)
+// -----------------------------------------------------------------
+function showAjaxToast(msg) {
+    const toast = document.getElementById('ajaxToast');
+    const toastMsg = document.getElementById('ajaxToastMessage');
+    toastMsg.innerText = msg;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 4000);
+}
+
+function hideAjaxToast() {
+    document.getElementById('ajaxToast').style.display = 'none';
+}
+
+async function submitAjaxDispatch(event, issueId) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById(`dispatchBtn-${issueId}`);
+    const select = form.querySelector('select[name="department_id"]');
+    const deptName = select.options[select.selectedIndex].text;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing';
+
+    try {
+        const formData = new FormData(form);
+        const res = await fetch(form.action, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            const statusBadge = document.getElementById(`statusBadge-${issueId}`);
+            if (statusBadge) {
+                statusBadge.innerText = 'Assigned';
+                statusBadge.className = 'badge bg-primary';
+            }
+            showAjaxToast(`Issue #CP${issueId} successfully assigned to ${deptName}. Citizen notified!`);
+        } else {
+            showAjaxToast(`Error dispatching issue #CP${issueId}. Please try again.`);
+        }
+    } catch (err) {
+        console.error("Dispatch AJAX error:", err);
+        showAjaxToast("Network error. Could not dispatch.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Dispatch';
+    }
+}
+
+async function submitAjaxStatusUpdate(event, issueId) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById(`updateBtn-${issueId}`);
+    const select = form.querySelector('select[name="new_status"]');
+    const newStatus = select.value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing';
+
+    try {
+        const formData = new FormData(form);
+        const res = await fetch(form.action, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            const statusBadge = document.getElementById(`statusBadge-${issueId}`);
+            if (statusBadge) {
+                statusBadge.innerText = newStatus;
+                if (newStatus === 'Resolved') {
+                    statusBadge.className = 'badge bg-success';
+                } else {
+                    statusBadge.className = 'badge bg-warning text-dark';
+                }
+            }
+            showAjaxToast(`Complaint #CP${issueId} status advanced to "${newStatus}".`);
+        } else {
+            showAjaxToast(`Error updating status for #CP${issueId}.`);
+        }
+    } catch (err) {
+        console.error("Status Update AJAX error:", err);
+        showAjaxToast("Network error. Could not update status.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Update';
+    }
+}
+
+async function submitAjaxVerify(event, issueId) {
+    event.preventDefault();
+    const form = event.target;
+    const submitter = event.submitter;
+    const formData = new FormData(form);
+    
+    if (submitter) {
+        formData.append(submitter.name, submitter.value);
+    }
+
+    try {
+        const res = await fetch(form.action, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            const row = document.getElementById(`reviewRow-${issueId}`);
+            if (row) {
+                row.style.transition = 'all 0.5s ease';
+                row.style.opacity = '0';
+                setTimeout(() => row.remove(), 500);
+            }
+            showAjaxToast(`AI verification complete for issue #${issueId}.`);
+        }
+    } catch (err) {
+        console.error("Verify AJAX error:", err);
+    }
 }
 </script>
 {% endblock %}

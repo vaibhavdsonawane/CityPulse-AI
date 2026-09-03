@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,25 +9,62 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('citypulse_theme') || 'light';
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark-mode');
-            }
-        })();
-    </script>
-</head>
-<body class="d-flex flex-column min-vh-100">
+    <style>
+    /* 🛡️ SOLID LIGHT NAVBAR BACKGROUND & HIGH CONTRAST TEXT */
+    #mainNavbar {
+        background-color: #ffffff !important;
+        z-index: 1030 !important;
+        position: sticky;
+        top: 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
 
-    <nav class="navbar navbar-expand-lg sticky-top border-bottom py-2 shadow-sm" id="mainNavbar">
+    #mainNavbar .nav-link {
+        color: #1e293b !important;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+    #mainNavbar .nav-link:hover,
+    #mainNavbar .nav-link:focus {
+        color: #0d6efd !important;
+    }
+
+    #mainNavbar .navbar-brand {
+        color: #0a3161 !important;
+    }
+
+    #mainNavbar .btn-light {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    /* 👤 USER PROFILE DROPDOWN MENU Z-INDEX & DISPLAY FIX */
+    .dropdown-menu {
+        z-index: 1050 !important;
+    }
+
+    #userProfileDropdownMenu {
+        min-width: 240px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+    }
+    
+    #userProfileDropdownMenu.show {
+        display: block !important;
+    }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+    <nav class="navbar navbar-expand-lg border-bottom py-2 shadow-sm" id="mainNavbar">
         <div class="container-fluid px-3 px-lg-5">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4 text-primary" href="{{ url_for('main.index') }}">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4" href="{{ url_for('main.index') }}">
                 <div class="brand-icon-wrapper rounded-3 bg-primary text-white d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                     <i class="fa-solid fa-city fs-5"></i>
                 </div>
@@ -38,19 +75,21 @@
                 <i class="fa-solid fa-bars fs-4 text-body"></i>
             </button>
 
-            <button class="btn btn-outline-secondary btn-theme-toggle rounded-circle me-2 p-0 d-flex align-items-center justify-content-center order-lg-last" id="themeToggleBtn" type="button" aria-label="Toggle Dark Mode" style="width: 40px; height: 40px;">
-                <i class="fa-solid fa-moon text-primary fs-5" id="themeIcon"></i>
-            </button>
-
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-3 mt-lg-0 fw-semibold">
                     <li class="nav-item">
                         <a class="nav-link px-3" href="{{ url_for('main.index') }}"><i class="fa-solid fa-house me-1"></i> Home</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3" href="{{ url_for('main.impact') }}"><i class="fa-solid fa-chart-line me-1 text-success"></i> Impact</a>
+                    </li>
                     {% if current_user.is_authenticated %}
                         {% if current_user.role == 'admin' %}
                         <li class="nav-item">
                             <a class="nav-link px-3" href="{{ url_for('admin.dashboard') }}"><i class="fa-solid fa-building-shield me-1"></i> Command Center</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3" href="{{ url_for('admin.risk_prediction') }}"><i class="fa-solid fa-calculator me-1"></i> AI Risk Predictor</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link px-3" href="{{ url_for('admin.ds_dashboard') }}"><i class="fa-solid fa-flask me-1"></i> Data Science Lab</a>
@@ -68,7 +107,7 @@
 
                 <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
                     {% if current_user.is_authenticated %}
-                        <div class="dropdown">
+                        <div class="dropdown position-relative">
                             <button class="btn btn-light border d-flex align-items-center gap-2 rounded-pill px-3 py-1 shadow-sm dropdown-toggle" 
                                     type="button" 
                                     id="userProfileDropdown" 
@@ -77,10 +116,13 @@
                                 <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 12px;">
                                     {{ current_user.name[0].upper() if current_user.name else 'U' }}
                                 </div>
-                                <span class="fw-bold small">{{ current_user.name.split()[0] if current_user.name else 'User' }}</span>
+                                <span class="fw-bold small text-dark">{{ current_user.name.split()[0] if current_user.name else 'User' }}</span>
                                 <span class="badge {{ 'bg-danger' if current_user.role == 'admin' else 'bg-primary' }} text-uppercase ms-1" style="font-size: 9px;">{{ current_user.role }}</span>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2" aria-labelledby="userProfileDropdown">
+                            
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2" 
+                                id="userProfileDropdownMenu" 
+                                aria-labelledby="userProfileDropdown">
                                 <li>
                                     <div class="dropdown-header">
                                         <strong class="d-block text-dark">{{ current_user.name }}</strong>
@@ -93,6 +135,7 @@
                                 <li><a class="dropdown-item" href="{{ url_for('citizen.report_issue') }}"><i class="fa-solid fa-plus me-2 text-success"></i> Report New Issue</a></li>
                                 {% else %}
                                 <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fa-solid fa-building-shield me-2 text-primary"></i> Command Center</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.risk_prediction') }}"><i class="fa-solid fa-calculator me-2 text-danger"></i> AI Risk Predictor</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin.ds_dashboard') }}"><i class="fa-solid fa-flask me-2 text-purple"></i> Data Science Lab</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
@@ -101,7 +144,7 @@
                         </div>
                     {% else %}
                         <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success fw-bold px-3 rounded-pill"><i class="fa-solid fa-user-plus me-1"></i> Register</a>
-                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary fw-bold px-3 rounded-pill"><i class="fa-solid fa-right-to-bracket me-1"></i> Citizen Login</a>
+                        <a href="{{ url_for('auth.login', portal='citizen') }}" class="btn btn-outline-primary fw-bold px-3 rounded-pill"><i class="fa-solid fa-right-to-bracket me-1"></i> Citizen Login</a>
                         <a href="{{ url_for('auth.admin_login') }}" class="btn btn-primary fw-bold px-3 rounded-pill shadow-sm"><i class="fa-solid fa-shield-halved me-1"></i> Admin Portal</a>
                     {% endif %}
                 </div>
@@ -133,18 +176,63 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-auto border-top py-4 bg-body-tertiary">
+    <footer class="mt-auto border-top py-5 bg-white">
         <div class="container-fluid px-3 px-lg-5">
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4">
+                    <div class="d-flex align-items-center gap-2 fw-bold fs-4 text-primary mb-2">
+                        <div class="brand-icon-wrapper rounded-3 bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="fa-solid fa-city fs-6"></i>
+                        </div>
+                        <span>CityPulse AI</span>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        AI-powered civic intelligence platform transforming municipal operations through automated vision detection, text priority scoring, and spatial hotspot analytics.
+                    </p>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
+                        <i class="fa-solid fa-circle text-success me-1" style="font-size: 8px;"></i> Live Municipal Network Active
+                    </span>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <h6 class="fw-bold text-dark mb-3">Platform</h6>
+                    <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+                        <li><a href="{{ url_for('main.index') }}" class="text-muted text-decoration-none">Home</a></li>
+                        <li><a href="{{ url_for('main.impact') }}" class="text-muted text-decoration-none">Impact Outcomes</a></li>
+                        <li><a href="{{ url_for('citizen.report_issue') }}" class="text-muted text-decoration-none">Report an Issue</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <h6 class="fw-bold text-dark mb-3">Portals</h6>
+                    <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+                        <li><a href="{{ url_for('auth.login', portal='citizen') }}" class="text-muted text-decoration-none">Citizen Dashboard</a></li>
+                        <li><a href="{{ url_for('auth.admin_login') }}" class="text-muted text-decoration-none">Command Center</a></li>
+                        <li><a href="{{ url_for('auth.register') }}" class="text-muted text-decoration-none">Citizen Registration</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-4">
+                    <h6 class="fw-bold text-dark mb-3">Technology Stack</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-light text-dark border">YOLOv8 Vision</span>
+                        <span class="badge bg-light text-dark border">NLP Priority Scoring</span>
+                        <span class="badge bg-light text-dark border">Haversine GIS</span>
+                        <span class="badge bg-light text-dark border">Predictive ML Models</span>
+                        <span class="badge bg-light text-dark border">Flask & SQLite</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
             <div class="row align-items-center g-3 text-center text-md-start">
                 <div class="col-md-6">
                     <p class="mb-0 text-muted small fw-semibold">
-                        &copy; 2026 <strong>CityPulse AI</strong> | Smart Urban Infrastructure Management Platform
+                        &copy; 2026 <strong>CityPulse AI</strong> | Built for smarter urban communities.
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill me-2">
-                        <i class="fa-solid fa-circle text-success me-1" style="font-size: 8px !important;"></i> Live Database Active
-                    </span>
                     <span class="text-muted small">Powered by Computer Vision & Predictive Analytics</span>
                 </div>
             </div>
@@ -155,29 +243,20 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const toggleBtn = document.getElementById('themeToggleBtn');
-            const themeIcon = document.getElementById('themeIcon');
+            const profileBtn = document.getElementById('userProfileDropdown');
+            const profileMenu = document.getElementById('userProfileDropdownMenu');
 
-            function updateThemeUI(theme) {
-                document.documentElement.setAttribute('data-bs-theme', theme);
-                if (theme === 'dark') {
-                    document.documentElement.classList.add('dark-mode');
-                    themeIcon.className = 'fa-solid fa-sun text-warning fs-5';
-                } else {
-                    document.documentElement.classList.remove('dark-mode');
-                    themeIcon.className = 'fa-solid fa-moon text-primary fs-5';
-                }
-            }
+            if (profileBtn && profileMenu) {
+                profileBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    profileMenu.classList.toggle('show');
+                });
 
-            const currentTheme = localStorage.getItem('citypulse_theme') || 'light';
-            updateThemeUI(currentTheme);
-
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    const activeTheme = document.documentElement.getAttribute('data-bs-theme');
-                    const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
-                    localStorage.setItem('citypulse_theme', newTheme);
-                    updateThemeUI(newTheme);
+                document.addEventListener('click', function(e) {
+                    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                        profileMenu.classList.remove('show');
+                    }
                 });
             }
         });

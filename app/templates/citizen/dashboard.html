@@ -4,13 +4,13 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-/* 🔔 NOTIFICATION CENTER STYLING & POSITIONING */
+/* 🔔 NOTIFICATION CENTER SHIFTED POSITIONING FIX */
 .notification-dropdown-menu {
     width: 360px;
     max-height: 420px;
     overflow-y: auto;
     z-index: 1050 !important;
-    border-radius: 12px;
+    border-radius: var(--cp-radius-lg, 16px);
     border: 1px solid var(--cp-border-color, #e0e0e0);
 }
 
@@ -18,25 +18,29 @@
     display: block !important;
     position: absolute !important;
     top: 100% !important;
-    left: -220px !important; /* Smooth left offset position */
+    left: -220px !important;
     right: auto !important;
     margin-top: 10px !important;
 }
 
 #citizenMap {
-    height: 350px;
+    height: 360px;
     width: 100%;
-    border-radius: 12px;
+    border-radius: var(--cp-radius-lg, 16px);
     border: 1px solid var(--cp-border-color, #dee2e6);
     z-index: 1;
 }
-.leaflet-popup-content-wrapper { border-radius: 10px !important; overflow: hidden; }
+.leaflet-popup-content-wrapper { border-radius: 12px !important; overflow: hidden; }
 .leaflet-popup-content { margin: 0 !important; width: 250px !important; }
 
-/* Gamification Badge Card Styling */
+/* Gamification Badge Card Hover Effects */
 .badge-card {
-    transition: all 0.3s ease;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
     border: 1px solid var(--cp-border-color, #e0e0e0);
+    border-radius: var(--cp-radius-md, 12px);
+}
+.badge-card:hover {
+    transform: translateY(-2px);
 }
 .badge-card.unlocked {
     background: var(--cp-bg-card, #ffffff);
@@ -47,76 +51,6 @@
     background: var(--cp-bg-main, #f8f9fa);
     opacity: 0.55;
     filter: grayscale(1);
-}
-
-/* 🔄 VISUAL WORKFLOW STEPPER STYLING */
-.stepper-wrapper {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-    margin-bottom: 10px;
-    padding: 10px 0;
-}
-.stepper-wrapper::before {
-    content: '';
-    position: absolute;
-    top: 25px;
-    left: 8%;
-    right: 8%;
-    height: 3px;
-    background-color: var(--cp-border-color, #e0e0e0);
-    z-index: 1;
-}
-.stepper-item {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-    z-index: 2;
-}
-.step-counter {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: var(--cp-bg-card, #ffffff);
-    border: 2px solid var(--cp-border-color, #ccc);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 13px;
-    color: #6c757d;
-    margin-bottom: 6px;
-    transition: all 0.3s ease;
-}
-.stepper-item.completed .step-counter {
-    background-color: #198754;
-    border-color: #198754;
-    color: #ffffff;
-}
-.stepper-item.active .step-counter {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: #ffffff;
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
-    animation: pulse-step 1.5s infinite;
-}
-@keyframes pulse-step {
-    0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5); }
-    70% { box-shadow: 0 0 0 8px rgba(13, 110, 253, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
-}
-.step-name {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--cp-text-main, #495057);
-    text-align: center;
-}
-.step-desc {
-    font-size: 9px;
-    color: #6c757d;
-    text-align: center;
 }
 
 /* Star Rating Widget Styling */
@@ -141,7 +75,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="fw-bold mb-0">Citizen Command Portal</h2>
+        <h2 class="fw-bold mb-0 text-dark">Citizen Command Portal</h2>
         <p class="text-muted mb-0">Track infrastructure issues, view live status lifecycles, and monitor civic impacts.</p>
     </div>
     
@@ -269,7 +203,7 @@
     <div class="col-12">
         <div class="pulse-card p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold mb-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> My Reported Locations</h5>
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> My Reported Locations</h5>
                 <div class="input-group" style="max-width: 350px;">
                     <input type="text" id="citizenMapSearch" class="form-control form-control-sm" placeholder="e.g. Uttam Nagar Nashik...">
                     <button type="button" class="btn btn-sm btn-primary" onclick="smartGeocodeCitizen()">
@@ -283,7 +217,7 @@
 </div>
 
 <div class="pulse-card p-4">
-    <h5 class="fw-bold mb-3">Reported Complaints & Live Lifecycle Status</h5>
+    <h5 class="fw-bold mb-3 text-dark">Reported Complaints & Live Lifecycle Status</h5>
     <div class="d-flex flex-column gap-3">
         {% for c in complaints %}
         <div class="border rounded-3 p-3 bg-white shadow-sm">
@@ -401,14 +335,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const badgeElem = document.getElementById('notifBadge');
     const notifItems = document.querySelectorAll('.notif-item');
 
-    // Get the highest notification ID currently present
     const latestNotifId = {{ notifications[0].id if notifications else 0 }};
-    
-    // Get last read notification ID from localStorage
     const storageKey = 'citypulse_last_read_notif_{{ current_user.id }}';
     const lastReadId = parseInt(localStorage.getItem(storageKey) || '0');
 
-    // Calculate unread count
     let unreadCount = 0;
     notifItems.forEach(item => {
         const nid = parseInt(item.getAttribute('data-notif-id') || '0');
@@ -418,7 +348,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Update badge display state
     if (unreadCount > 0) {
         badgeElem.innerText = unreadCount;
         badgeElem.style.display = 'inline-block';
@@ -434,7 +363,6 @@ document.addEventListener("DOMContentLoaded", function() {
             const isShowing = notifMenu.classList.contains('show');
             notifMenu.classList.toggle('show');
 
-            // When opening menu, mark all current notifications as read & hide badge
             if (!isShowing) {
                 if (badgeElem) {
                     badgeElem.style.display = 'none';
@@ -442,14 +370,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (latestNotifId > 0) {
                     localStorage.setItem(storageKey, latestNotifId.toString());
                 }
-                // Remove highlight from unread items
                 notifItems.forEach(item => {
                     item.classList.remove('bg-primary-subtle', 'border-start', 'border-4', 'border-primary');
                 });
             }
         });
 
-        // Close menu on click outside
         document.addEventListener('click', function(e) {
             if (!notifBtn.contains(e.target) && !notifMenu.contains(e.target)) {
                 notifMenu.classList.remove('show');
