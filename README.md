@@ -92,8 +92,8 @@ Open your browser and navigate to:
 ## 🔑 Default User Credentials
 ### 1. Municipal Administrator (Command Center)
 * **URL:** `http://127.0.0.1:5000/admin/dashboard`
-* **Email:** `admin@nashik.gov.in`
-* **Password:** `admin123`
+* **Email:** `admin@citypulse.gov`
+* **Password:** `Admin@123!`
 * **Access Scope:** Satellite GIS threat map, Human-in-the-Loop review queue, department dispatch board, and ML risk sandbox.
 ### 2. Citizen User (Citizen Portal)
 * **URL:** `http://127.0.0.1:5000/citizen/dashboard`
